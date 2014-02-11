@@ -307,6 +307,12 @@ void t_json_generator::generate_field(t_field * field){
 	write_key("name", field->get_name());
 	write_key("type", get_type_name(field->get_type()));
 	if (field->has_doc()) write_key("doc", field->get_doc());
+	switch (field->get_req()){
+	case t_field::e_req::T_REQUIRED:
+		write_key("required", "true");
+		break;
+	}
+	
 	end_object(false);
 	indicate_comma_needed();
 }
