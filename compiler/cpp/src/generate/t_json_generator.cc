@@ -333,6 +333,8 @@ void t_json_generator::generate_field(t_field * field){
 		write_key("required", "true");
 		break;
 	}
+	if (field->get_value())
+		write_key("default", get_const_value(field->get_value()));
 
 	end_object(false);
 	indicate_comma_needed();
