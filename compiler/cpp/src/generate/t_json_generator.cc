@@ -65,15 +65,18 @@ private:
 	void write_comma_if_needed();
 	void indicate_comma_needed();
 	string escapeJsonString(const string& input);
+
+	void merge_includes(t_program*);
 };
 
 void t_json_generator::init_generator() {
-	// Make output directory
 	MKDIR(get_out_dir().c_str());
 
-	// Make output file
 	string f_json_name = get_out_dir() + program_->get_name() + ".json";
 	f_json_.open(f_json_name.c_str());
+
+	//Merge all included programs into this one so we can output one big file.
+	merge_includes(program_);
 }
 
 string t_json_generator::escapeJsonString(const string& input) {
@@ -141,14 +144,59 @@ void t_json_generator::close_generator() {
 	f_json_.close();
 }
 
+void t_json_generator::merge_includes(t_program * program) {
+	vector<t_program*> includes = program->get_includes();
+	vector<t_program*>::iterator inc_iter;
+	for (inc_iter = includes.begin(); inc_iter != includes.end(); ++inc_iter){
+		t_program* include = *inc_iter;
+		//recurse in case we get crazy
+		merge_includes(include);
+		//merge enums
+		vector<t_enum*> enums = include->get_enums();
+		vector<t_enum*>::iterator en_iter;
+		for (en_iter = enums.begin(); en_iter != enums.end(); ++en_iter) {
+			program->add_enum(*en_iter);
+		}
+		//merge typedefs
+		vector<t_typedef*> typedefs = include->get_typedefs();
+		vector<t_typedef*>::iterator td_iter;
+		for (td_iter = typedefs.begin(); td_iter != typedefs.end(); ++td_iter) {
+			program->add_typedef(*td_iter);
+		}
+		//merge structs
+		vector<t_struct*> objects = include->get_objects();
+		vector<t_struct*>::iterator o_iter;
+		for (o_iter = objects.begin(); o_iter != objects.end(); ++o_iter) {
+			program->add_struct(*o_iter);
+		}
+		//merge constants
+		vector<t_const*> consts = include->get_consts();
+		vector<t_const*>::iterator c_iter;
+		for (c_iter = consts.begin(); c_iter != consts.end(); ++c_iter){
+			program->add_const(*c_iter);
+		}
+
+		// Generate services
+		vector<t_service*> services = include->get_services();
+		vector<t_service*>::iterator sv_iter;
+		for (sv_iter = services.begin(); sv_iter != services.end(); ++sv_iter) {
+			program->add_service(*sv_iter);
+		}
+	}
+}
+
 void t_json_generator::generate_program() {
 	// Initialize the generator
 	init_generator();
 	start_object();
+
+	write_key("name", program_->get_name());
+	if (program_->has_doc()) write_key("doc", program_->get_doc());
+	
 	// Generate enums
 	vector<t_enum*> enums = program_->get_enums();
 	vector<t_enum*>::iterator en_iter;
-	f_json_ << "\"enums\":";
+	f_json_ << ",\"enums\":";
 	start_array();
 	f_json_ << endl;
 	for (en_iter = enums.begin(); en_iter != enums.end(); ++en_iter) {
@@ -279,7 +327,7 @@ void t_json_generator::generate_struct(t_struct* tstruct){
 void t_json_generator::generate_service(t_service* tservice){
 	start_object();
 	write_key("name", tservice->get_name());
-	if (tservice->get_extends()) write_key("extends", tservice->get_extends()->get_name());
+	if (tservice->get_extends()) write_key("extendsType", tservice->get_extends()->get_name());
 	if (tservice->has_doc()) write_key("doc", tservice->get_doc());
 	vector<t_function*> functions = tservice->get_functions();
 	vector<t_function*>::iterator fn_iter = functions.begin();
@@ -399,4 +447,4 @@ string t_json_generator::get_type_name(t_type* ttype){
 	}
 }
 
-THRIFT_REGISTER_GENERATOR(json, "JSON", "")
+THRIFT_REGISTER_GENERATOR(json, "JSON", "Export program metadata to json format for easy consumption")
