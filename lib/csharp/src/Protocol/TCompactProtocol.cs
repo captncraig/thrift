@@ -23,6 +23,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Thrift.Transport;
 using System.Collections;
 using System.IO;
@@ -177,12 +178,12 @@ namespace Thrift.Protocol
         * Write a message header to the wire. Compact Protocol messages contain the
         * protocol version so we can migrate forwards in the future if need be.
         */
-        public override void WriteMessageBegin(TMessage message)
+        public override async Task WriteMessageBeginAsync(TMessage message)
         {
             WriteByteDirect(PROTOCOL_ID);
             WriteByteDirect((byte)((VERSION & VERSION_MASK) | ((((uint)message.Type) << TYPE_SHIFT_AMOUNT) & TYPE_MASK)));
             WriteVarint32((uint)message.SeqID);
-            WriteString(message.Name);
+            await WriteStringAsync(message.Name);
         }
 
         /**
@@ -190,10 +191,11 @@ namespace Thrift.Protocol
          * use it as an opportunity to put special placeholder markers on the field
          * stack so we can get the field id deltas correct.
          */
-        public override void WriteStructBegin(TStruct strct)
+        public override Task WriteStructBeginAsync(TStruct strct)
         {
             lastField_.Push(lastFieldId_);
             lastFieldId_ = 0;
+            return NoopTask;
         }
 
         /**
@@ -201,9 +203,10 @@ namespace Thrift.Protocol
          * this as an opportunity to pop the last field from the current struct off
          * of the field stack.
          */
-        public override void WriteStructEnd()
+        public override Task WriteStructEndAsync()
         {
             lastFieldId_ = lastField_.Pop();
+            return NoopTask;
         }
 
         /**
@@ -212,7 +215,7 @@ namespace Thrift.Protocol
          * then the field id will be encoded in the 4 MSB as a delta. Otherwise, the
          * field id will follow the type header as a zigzag varint.
          */
-        public override void WriteFieldBegin(TField field)
+        public override async Task WriteFieldBeginAsync(TField field)
         {
             if (field.Type == TType.Bool)
             {
@@ -221,7 +224,7 @@ namespace Thrift.Protocol
             }
             else
             {
-                WriteFieldBeginInternal(field, 0xFF);
+                await WriteFieldBeginInternalAsync(field, 0xFF);
             }
         }
 
@@ -230,7 +233,7 @@ namespace Thrift.Protocol
          * 'type override' of the type header. This is used specifically in the 
          * boolean field case.
          */
-        private void WriteFieldBeginInternal(TField field, byte typeOverride)
+        private async Task WriteFieldBeginInternalAsync(TField field, byte typeOverride)
         {
             // short lastField = lastField_.Pop();
 
@@ -247,7 +250,7 @@ namespace Thrift.Protocol
             {
                 // Write them separate
                 WriteByteDirect(typeToWrite);
-                WriteI16(field.ID);
+                await WriteI16Async(field.ID);
             }
 
             lastFieldId_ = field.ID;
@@ -257,7 +260,7 @@ namespace Thrift.Protocol
         /**
          * Write the STOP symbol so we know there are no more fields in this struct.
          */
-        public override void WriteFieldStop()
+        public override async Task WriteFieldStopAsync()
         {
             WriteByteDirect(Types.STOP);
         }
@@ -266,7 +269,7 @@ namespace Thrift.Protocol
          * Write a map header. If the map is empty, omit the key and value type 
          * headers, as we don't need any additional information to skip it.
          */
-        public override void WriteMapBegin(TMap map)
+        public override async Task WriteMapBeginAsync(TMap map)
         {
             if (map.Count == 0)
             {
@@ -282,7 +285,7 @@ namespace Thrift.Protocol
         /** 
          * Write a list header.
          */
-        public override void WriteListBegin(TList list)
+        public override async Task WriteListBeginAsync(TList list)
         {
             WriteCollectionBegin(list.ElementType, list.Count);
         }
@@ -290,7 +293,7 @@ namespace Thrift.Protocol
         /**
          * Write a set header.
          */
-        public override void WriteSetBegin(TSet set)
+        public override async Task WriteSetBeginAsync(TSet set)
         {
             WriteCollectionBegin(set.ElementType, set.Count);
         }
@@ -301,12 +304,12 @@ namespace Thrift.Protocol
          * right type header is for the value and then Write the field header. 
          * Otherwise, Write a single byte.
          */
-        public override void WriteBool(Boolean b)
+        public override async Task WriteBoolAsync(Boolean b)
         {
             if (booleanField_ != null)
             {
                 // we haven't written the field header yet
-                WriteFieldBeginInternal(booleanField_.Value, b ? Types.BOOLEAN_TRUE : Types.BOOLEAN_FALSE);
+                await WriteFieldBeginInternalAsync(booleanField_.Value, b ? Types.BOOLEAN_TRUE : Types.BOOLEAN_FALSE);
                 booleanField_ = null;
             }
             else
@@ -319,7 +322,7 @@ namespace Thrift.Protocol
         /** 
          * Write a byte. Nothing to see here!
          */
-        public override void WriteByte(sbyte b)
+        public override async Task WriteByteAsync(sbyte b)
         {
             WriteByteDirect((byte)b);
         }
@@ -327,7 +330,7 @@ namespace Thrift.Protocol
         /**
          * Write an I16 as a zigzag varint.
          */
-        public override void WriteI16(short i16)
+        public override async Task WriteI16Async(short i16)
         {
             WriteVarint32(intToZigZag(i16));
         }
@@ -335,7 +338,7 @@ namespace Thrift.Protocol
         /**
          * Write an i32 as a zigzag varint.
          */
-        public override void WriteI32(int i32)
+        public override async Task WriteI32Async(int i32)
         {
             WriteVarint32(intToZigZag(i32));
         }
@@ -343,7 +346,7 @@ namespace Thrift.Protocol
         /**
          * Write an i64 as a zigzag varint.
          */
-        public override void WriteI64(long i64)
+        public override async Task WriteI64Async(long i64)
         {
             WriteVarint64(longToZigzag(i64));
         }
@@ -351,7 +354,7 @@ namespace Thrift.Protocol
         /**
          * Write a double to the wire as 8 bytes.
          */
-        public override void WriteDouble(double dub)
+        public override async Task WriteDoubleAsync(double dub)
         {
             byte[] data = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
             fixedLongToBytes(BitConverter.DoubleToInt64Bits(dub), data, 0);
@@ -361,7 +364,7 @@ namespace Thrift.Protocol
         /**
          * Write a string to the wire with a varint size preceding.
          */
-        public override void WriteString(String str)
+        public override async Task WriteStringAsync(String str)
         {
             byte[] bytes = UTF8Encoding.UTF8.GetBytes(str);
             WriteBinary(bytes, 0, bytes.Length);
@@ -370,7 +373,7 @@ namespace Thrift.Protocol
         /**
          * Write a byte array, using a varint for the size. 
          */
-        public override void WriteBinary(byte[] bin)
+        public override async Task WriteBinaryAsync(byte[] bin)
         {
             WriteBinary(bin, 0, bin.Length);
         }
@@ -385,12 +388,12 @@ namespace Thrift.Protocol
         // These methods are called by structs, but don't actually have any wire 
         // output or purpose.
         // 
-
-        public override void WriteMessageEnd() { }
-        public override void WriteMapEnd() { }
-        public override void WriteListEnd() { }
-        public override void WriteSetEnd() { }
-        public override void WriteFieldEnd() { }
+        
+        public override Task WriteMessageEndAsync() { return NoopTask;  }
+        public override Task WriteMapEndAsync() { return NoopTask; }
+        public override Task WriteListEndAsync() { return NoopTask; }
+        public override Task WriteSetEndAsync() { return NoopTask; }
+        public override Task WriteFieldEndAsync() { return NoopTask; }
 
         //
         // Internal writing methods

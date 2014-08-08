@@ -78,6 +78,7 @@
     <ClInclude Include="src\windows\version.h">
       <Filter>windows</Filter>
     </ClInclude>
+    <ClInclude Include="src\version.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="windows">

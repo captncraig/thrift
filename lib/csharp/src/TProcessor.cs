@@ -22,6 +22,7 @@
  */
 
 using System;
+using System.Threading.Tasks;
 using Thrift.Protocol;
 
 namespace Thrift
@@ -30,4 +31,9 @@ namespace Thrift
 	{
 		bool Process(TProtocol iprot, TProtocol oprot);
 	}
+
+    public interface TAsyncProcessor
+    {
+        Task<bool> ProcessAsync(TProtocol iprot, TProtocol oprot);
+    }
 }

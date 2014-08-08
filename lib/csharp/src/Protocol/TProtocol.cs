@@ -23,6 +23,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Thrift.Transport;
 
 namespace Thrift.Protocol
@@ -30,6 +31,9 @@ namespace Thrift.Protocol
 	public abstract class TProtocol : IDisposable
 	{
 		protected TTransport trans;
+
+        //For task based methods that do nothing, this is a convient task to return.
+        protected readonly Task NoopTask = Task.FromResult(0);
 
 		protected TProtocol(TTransport trans)
 		{
@@ -64,29 +68,115 @@ namespace Thrift.Protocol
         }
         #endregion
 
-		public abstract void WriteMessageBegin(TMessage message);
-		public abstract void WriteMessageEnd();
-		public abstract void WriteStructBegin(TStruct struc);
-		public abstract void WriteStructEnd();
-		public abstract void WriteFieldBegin(TField field);
-		public abstract void WriteFieldEnd();
-		public abstract void WriteFieldStop();
-		public abstract void WriteMapBegin(TMap map);
-		public abstract void WriteMapEnd();
-		public abstract void WriteListBegin(TList list);
-		public abstract void WriteListEnd();
-		public abstract void WriteSetBegin(TSet set);
-		public abstract void WriteSetEnd();
-		public abstract void WriteBool(bool b);
-		public abstract void WriteByte(sbyte b);
-		public abstract void WriteI16(short i16);
-		public abstract void WriteI32(int i32);
-		public abstract void WriteI64(long i64);
-		public abstract void WriteDouble(double d);
-		public virtual void WriteString(string s) {
-			WriteBinary(Encoding.UTF8.GetBytes(s));
+        public abstract Task WriteMessageBeginAsync(TMessage message);
+        public abstract Task WriteMessageEndAsync();
+	    public abstract Task WriteStructBeginAsync(TStruct struc);
+        public abstract Task WriteStructEndAsync();
+        public abstract Task WriteFieldBeginAsync(TField field);
+        public abstract Task WriteFieldEndAsync();
+        public abstract Task WriteFieldStopAsync();
+        public abstract Task WriteMapBeginAsync(TMap map);
+        public abstract Task WriteMapEndAsync();
+        public abstract Task WriteListBeginAsync(TList list);
+        public abstract Task WriteListEndAsync();
+        public abstract Task WriteSetBeginAsync(TSet set);
+        public abstract Task WriteSetEndAsync();
+        public abstract Task WriteBoolAsync(bool b);
+        public abstract Task WriteByteAsync(sbyte b);
+        public abstract Task WriteI16Async(short i16);
+        public abstract Task WriteI32Async(int i32);
+        public abstract Task WriteI64Async(long i64);
+        public abstract Task WriteDoubleAsync(double d);
+        public virtual Task WriteStringAsync(string s)
+        {
+            return WriteBinaryAsync(Encoding.UTF8.GetBytes(s));
+        }
+        public abstract Task WriteBinaryAsync(byte[] b);
+
+        public void WriteMessageBeginZZZ(TMessage message)
+        {
+            WriteMessageBeginAsync(message).Wait();
+        }
+        public void WriteMessageEndZZZ()
+        {
+            WriteMessageEndAsync().Wait();
+        }
+        public void WriteStructBeginZZZ(TStruct struc)
+        {
+            WriteStructBeginAsync(struc).Wait();
+        }
+	    public void WriteStructEndZZZ()
+	    {
+	        WriteStructEndAsync().Wait();
+	    }
+        public void WriteFieldBeginZZZ(TField field)
+        {
+            WriteFieldBeginAsync(field).Wait();
+        }
+        public void WriteFieldEndZZZ()
+        {
+            WriteFieldEndAsync().Wait();
+        }
+        public void WriteFieldStopZZZ()
+        {
+            WriteFieldStopAsync().Wait();
+        }
+        public void WriteMapBeginZZZ(TMap map)
+        {
+            WriteMapBeginAsync(map).Wait();
+        }
+        public void WriteMapEndZZZ()
+        {
+            WriteMapEndAsync().Wait();
+        }
+        public void WriteListBeginZZZ(TList list)
+        {
+            WriteListBeginAsync(list).Wait();
+        }
+        public void WriteListEndZZZ()
+        {
+            WriteListEndAsync().Wait();
+        }
+        public void WriteSetBeginZZZ(TSet set)
+        {
+            WriteSetBeginAsync(set).Wait();
+        }
+        public void WriteSetEndZZZ()
+        {
+            WriteSetEndAsync().Wait();
+        }
+        public void WriteBoolZZZ(bool b)
+        {
+            WriteBoolAsync(b).Wait();
+        }
+        public void WriteByteZZZ(sbyte b)
+        {
+            WriteByteAsync(b).Wait();
+        }
+        public void WriteI16ZZZ(short i16)
+        {
+            WriteI16Async(i16).Wait();
+        }
+        public void WriteI32ZZZ(int i32)
+        {
+            WriteI32Async(i32).Wait();
+        }
+        public void WriteI64ZZZ(long i64)
+        {
+            WriteI64Async(i64).Wait();
+        }
+        public void WriteDoubleZZZ(double d)
+        {
+            WriteDoubleAsync(d).Wait();
+        }
+		public void WriteStringZZZ(string s)
+		{
+		    WriteStringAsync(s).Wait();
 		}
-		public abstract void WriteBinary(byte[] b);
+	    public void WriteBinaryZZZ(byte[] b)
+	    {
+	        WriteBinaryAsync(b).Wait();
+	    }
 
 		public abstract TMessage ReadMessageBegin();
 		public abstract void ReadMessageEnd();

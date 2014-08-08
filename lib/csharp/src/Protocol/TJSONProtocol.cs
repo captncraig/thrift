@@ -21,7 +21,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 using Thrift.Transport;
 using System.Globalization;
 
@@ -588,7 +588,7 @@ namespace Thrift.Protocol
 			trans.Write(RBRACKET);
 		}
 
-		public override void WriteMessageBegin(TMessage message)
+		public override async Task WriteMessageBeginAsync(TMessage message)
 		{
 			WriteJSONArrayStart();
 			WriteJSONInteger(VERSION);
@@ -600,36 +600,36 @@ namespace Thrift.Protocol
 			WriteJSONInteger(message.SeqID);
 		}
 
-		public override void WriteMessageEnd()
+        public override async Task WriteMessageEndAsync()
 		{
 			WriteJSONArrayEnd();
 		}
 
-		public override void WriteStructBegin(TStruct str)
+        public override async Task WriteStructBeginAsync(TStruct str)
 		{
 			WriteJSONObjectStart();
 		}
 
-		public override void WriteStructEnd()
+        public override async Task WriteStructEndAsync()
 		{
 			WriteJSONObjectEnd();
 		}
 
-		public override void WriteFieldBegin(TField field)
+        public override async Task WriteFieldBeginAsync(TField field)
 		{
 			WriteJSONInteger(field.ID);
 			WriteJSONObjectStart();
 			WriteJSONString(GetTypeNameForTypeID(field.Type));
 		}
 
-		public override void WriteFieldEnd()
+        public override async Task WriteFieldEndAsync()
 		{
 			WriteJSONObjectEnd();
 		}
 
-		public override void WriteFieldStop() { }
+        public override async Task WriteFieldStopAsync() { }
 
-		public override void WriteMapBegin(TMap map)
+        public override async Task WriteMapBeginAsync(TMap map)
 		{
 			WriteJSONArrayStart();
 			WriteJSONString(GetTypeNameForTypeID(map.KeyType));
@@ -638,73 +638,73 @@ namespace Thrift.Protocol
 			WriteJSONObjectStart();
 		}
 
-		public override void WriteMapEnd()
+        public override async Task WriteMapEndAsync()
 		{
 			WriteJSONObjectEnd();
 			WriteJSONArrayEnd();
 		}
 
-		public override void WriteListBegin(TList list)
+        public override async Task WriteListBeginAsync(TList list)
 		{
 			WriteJSONArrayStart();
 			WriteJSONString(GetTypeNameForTypeID(list.ElementType));
 			WriteJSONInteger(list.Count);
 		}
 
-		public override void WriteListEnd()
+        public override async Task WriteListEndAsync()
 		{
 			WriteJSONArrayEnd();
 		}
 
-		public override void WriteSetBegin(TSet set)
+        public override async Task WriteSetBeginAsync(TSet set)
 		{
 			WriteJSONArrayStart();
 			WriteJSONString(GetTypeNameForTypeID(set.ElementType));
 			WriteJSONInteger(set.Count);
 		}
 
-		public override void WriteSetEnd()
+        public override async Task WriteSetEndAsync()
 		{
 			WriteJSONArrayEnd();
 		}
 
-		public override void WriteBool(bool b)
+        public override async Task WriteBoolAsync(bool b)
 		{
 			WriteJSONInteger(b ? (long)1 : (long)0);
 		}
 
-		public override void WriteByte(sbyte b)
+        public override async Task WriteByteAsync(sbyte b)
 		{
 			WriteJSONInteger((long)b);
 		}
 
-		public override void WriteI16(short i16)
+        public override async Task WriteI16Async(short i16)
 		{
 			WriteJSONInteger((long)i16);
 		}
 
-		public override void WriteI32(int i32)
+        public override async Task WriteI32Async(int i32)
 		{
 			WriteJSONInteger((long)i32);
 		}
 
-		public override void WriteI64(long i64)
+        public override async Task WriteI64Async(long i64)
 		{
 			WriteJSONInteger(i64);
 		}
 
-		public override void WriteDouble(double dub)
+        public override async Task WriteDoubleAsync(double dub)
 		{
 			WriteJSONDouble(dub);
 		}
 
-		public override void WriteString(String str)
+		public override async Task WriteStringAsync(String str)
 		{
 			byte[] b = utf8Encoding.GetBytes(str);
 			WriteJSONString(b);
 		}
 
-		public override void WriteBinary(byte[] bin)
+        public override async Task WriteBinaryAsync(byte[] bin)
 		{
 			WriteJSONBase64(bin);
 		}

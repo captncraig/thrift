@@ -101,26 +101,26 @@ namespace Thrift
 			TStruct struc = new TStruct("TApplicationException");
 			TField field = new TField();
 
-			oprot.WriteStructBegin(struc);
+			oprot.WriteStructBeginZZZ(struc);
 
 			if (!String.IsNullOrEmpty(Message))
 			{
 				field.Name = "message";
 				field.Type = TType.String;
 				field.ID = 1;
-				oprot.WriteFieldBegin(field);
-				oprot.WriteString(Message);
-				oprot.WriteFieldEnd();
+				oprot.WriteFieldBeginZZZ(field);
+				oprot.WriteStringZZZ(Message);
+				oprot.WriteFieldEndZZZ();
 			}
 
 			field.Name = "type";
 			field.Type = TType.I32;
 			field.ID = 2;
-			oprot.WriteFieldBegin(field);
-			oprot.WriteI32((int)type);
-			oprot.WriteFieldEnd();
-			oprot.WriteFieldStop();
-			oprot.WriteStructEnd();
+			oprot.WriteFieldBeginZZZ(field);
+			oprot.WriteI32ZZZ((int)type);
+			oprot.WriteFieldEndZZZ();
+			oprot.WriteFieldStopZZZ();
+			oprot.WriteStructEndZZZ();
 		}
 
 		public enum ExceptionType

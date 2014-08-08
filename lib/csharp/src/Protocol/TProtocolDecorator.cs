@@ -23,10 +23,11 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Thrift.Transport;
 using System.Collections.Generic;
 
-namespace Thrift.Protocol 
+namespace Thrift.Protocol
 {
 
     /**
@@ -38,7 +39,7 @@ namespace Thrift.Protocol
      * See p.175 of Design Patterns (by Gamma et al.)
      * See TMultiplexedProtocol
      */
-    public abstract class TProtocolDecorator : TProtocol 
+    public abstract class TProtocolDecorator : TProtocol
     {
         private TProtocol WrappedProtocol;
 
@@ -46,116 +47,116 @@ namespace Thrift.Protocol
          * Encloses the specified protocol.
          * @param protocol All operations will be forward to this protocol.  Must be non-null.
          */
-        public TProtocolDecorator(TProtocol protocol) 
-            : base( protocol.Transport)
+        public TProtocolDecorator(TProtocol protocol)
+            : base(protocol.Transport)
         {
-            
+
             WrappedProtocol = protocol;
         }
 
-        public override void WriteMessageBegin(TMessage tMessage) 
+        public override Task WriteMessageBeginAsync(TMessage tMessage)
         {
-            WrappedProtocol.WriteMessageBegin(tMessage);
+            return WrappedProtocol.WriteMessageBeginAsync(tMessage);
         }
 
-        public override void WriteMessageEnd()
+        public override Task WriteMessageEndAsync()
         {
-            WrappedProtocol.WriteMessageEnd();
+            return WrappedProtocol.WriteMessageEndAsync();
         }
 
-        public override void WriteStructBegin(TStruct tStruct)
+        public override Task WriteStructBeginAsync(TStruct tStruct)
         {
-            WrappedProtocol.WriteStructBegin(tStruct);
+            return WrappedProtocol.WriteStructBeginAsync(tStruct);
         }
 
-        public override void WriteStructEnd()
+        public override Task WriteStructEndAsync()
         {
-            WrappedProtocol.WriteStructEnd();
+            return WrappedProtocol.WriteStructEndAsync();
         }
 
-        public override void WriteFieldBegin(TField tField)
+        public override Task WriteFieldBeginAsync(TField tField)
         {
-            WrappedProtocol.WriteFieldBegin(tField);
+            return WrappedProtocol.WriteFieldBeginAsync(tField);
         }
 
-        public override void WriteFieldEnd()
+        public override Task WriteFieldEndAsync()
         {
-            WrappedProtocol.WriteFieldEnd();
+            return WrappedProtocol.WriteFieldEndAsync();
         }
 
-        public override void WriteFieldStop()
+        public override Task WriteFieldStopAsync()
         {
-            WrappedProtocol.WriteFieldStop();
+            return WrappedProtocol.WriteFieldStopAsync();
         }
 
-        public override void WriteMapBegin(TMap tMap) 
+        public override Task WriteMapBeginAsync(TMap tMap)
         {
-            WrappedProtocol.WriteMapBegin(tMap);
+            return WrappedProtocol.WriteMapBeginAsync(tMap);
         }
 
-        public override void WriteMapEnd()
+        public override Task WriteMapEndAsync()
         {
-            WrappedProtocol.WriteMapEnd();
+            return WrappedProtocol.WriteMapEndAsync();
         }
 
-        public override void WriteListBegin(TList tList)  
+        public override Task WriteListBeginAsync(TList tList)
         {
-            WrappedProtocol.WriteListBegin(tList);
+            return WrappedProtocol.WriteListBeginAsync(tList);
         }
 
-        public override void WriteListEnd()
-{
-            WrappedProtocol.WriteListEnd();
+        public override Task WriteListEndAsync()
+        {
+            return WrappedProtocol.WriteListEndAsync();
         }
 
-        public override void WriteSetBegin(TSet tSet)  
+        public override Task WriteSetBeginAsync(TSet tSet)
         {
-            WrappedProtocol.WriteSetBegin(tSet);
+            return WrappedProtocol.WriteSetBeginAsync(tSet);
         }
 
-        public override void WriteSetEnd()
+        public override Task WriteSetEndAsync()
         {
-            WrappedProtocol.WriteSetEnd();
+            return WrappedProtocol.WriteSetEndAsync();
         }
 
-        public override void WriteBool(bool b)  
+        public override Task WriteBoolAsync(bool b)
         {
-            WrappedProtocol.WriteBool(b);
+            return WrappedProtocol.WriteBoolAsync(b);
         }
 
-        public override void WriteByte(sbyte b)
+        public override Task WriteByteAsync(sbyte b)
         {
-            WrappedProtocol.WriteByte(b);
+            return WrappedProtocol.WriteByteAsync(b);
         }
 
-        public override void WriteI16(short i)
+        public override Task WriteI16Async(short i)
         {
-            WrappedProtocol.WriteI16(i);
+            return WrappedProtocol.WriteI16Async(i);
         }
 
-        public override void WriteI32(int i)
+        public override Task WriteI32Async(int i)
         {
-            WrappedProtocol.WriteI32(i);
+            return WrappedProtocol.WriteI32Async(i);
         }
 
-        public override void WriteI64(long l)
+        public override Task WriteI64Async(long l)
         {
-            WrappedProtocol.WriteI64(l);
+            return WrappedProtocol.WriteI64Async(l);
         }
 
-        public override void WriteDouble(double v)
+        public override Task WriteDoubleAsync(double v)
         {
-            WrappedProtocol.WriteDouble(v);
+            return WrappedProtocol.WriteDoubleAsync(v);
         }
 
-        public override void WriteString(String s)
+        public override Task WriteStringAsync(String s)
         {
-            WrappedProtocol.WriteString(s);
+            return WrappedProtocol.WriteStringAsync(s);
         }
 
-        public override void WriteBinary(byte[] bytes)
+        public override Task WriteBinaryAsync(byte[] bytes)
         {
-            WrappedProtocol.WriteBinary(bytes);
+            return WrappedProtocol.WriteBinaryAsync(bytes);
         }
 
         public override TMessage ReadMessageBegin()

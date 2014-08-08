@@ -76,9 +76,9 @@ namespace Thrift.Protocol
 
             TMessage newMessage = new TMessage(message.Name, TMessageType.Exception, message.SeqID);
 
-            oprot.WriteMessageBegin(newMessage);
+            oprot.WriteMessageBeginZZZ(newMessage);
             appex.Write( oprot);
-            oprot.WriteMessageEnd();
+            oprot.WriteMessageEndZZZ();
             oprot.Transport.Flush();
         }
             

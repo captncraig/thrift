@@ -23,6 +23,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Thrift.Transport;
 using System.Collections.Generic;
 
@@ -83,21 +84,19 @@ namespace Thrift.Protocol
          * Args:
          *   tMessage     The original message.
          */
-        public override void WriteMessageBegin(TMessage tMessage) 
+        public override Task WriteMessageBeginAsync(TMessage tMessage) 
         {
             switch(tMessage.Type)
             {
                 case TMessageType.Call:
                 case TMessageType.Oneway:
-                    base.WriteMessageBegin(new TMessage(
+                    return base.WriteMessageBeginAsync(new TMessage(
                         ServiceName + SEPARATOR + tMessage.Name,
                         tMessage.Type,
                         tMessage.SeqID));
-                    break;
 
                 default:
-                    base.WriteMessageBegin(tMessage);
-                    break;
+                    return base.WriteMessageBeginAsync(tMessage);
             }
         }
     }

@@ -23,6 +23,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Thrift.Transport;
 
 namespace Thrift.Protocol
@@ -76,95 +77,102 @@ namespace Thrift.Protocol
 
 		#region Write Methods
 
-		public override void WriteMessageBegin(TMessage message)
+		public override async Task WriteMessageBeginAsync(TMessage message)
 		{
 			if (strictWrite_)
 			{
 				uint version = VERSION_1 | (uint)(message.Type);
-				WriteI32((int)version);
-				WriteString(message.Name);
-				WriteI32(message.SeqID);
+				await WriteI32Async((int)version);
+				await WriteStringAsync(message.Name);
+				await WriteI32Async(message.SeqID);
 			}
 			else
 			{
-				WriteString(message.Name);
-				WriteByte((sbyte)message.Type);
-				WriteI32(message.SeqID);
+				await WriteStringAsync(message.Name);
+				await WriteByteAsync((sbyte)message.Type);
+                await WriteI32Async(message.SeqID);
 			}
 		}
 
-		public override void WriteMessageEnd()
+		public override Task WriteMessageEndAsync()
 		{
+		    return NoopTask;
 		}
 
-		public override void WriteStructBegin(TStruct struc)
+        public override Task WriteStructBeginAsync(TStruct struc)
 		{
+            return NoopTask;
 		}
 
-		public override void WriteStructEnd()
+        public override Task WriteStructEndAsync()
 		{
+            return NoopTask;
 		}
 
-		public override void WriteFieldBegin(TField field)
+        public override async Task WriteFieldBeginAsync(TField field)
 		{
-			WriteByte((sbyte)field.Type);
-			WriteI16(field.ID);
+			await WriteByteAsync((sbyte)field.Type);
+			await WriteI16Async(field.ID);
 		}
 
-		public override void WriteFieldEnd()
+        public override Task WriteFieldEndAsync()
 		{
+            return NoopTask;
 		}
 
-		public override void WriteFieldStop()
+        public override Task WriteFieldStopAsync()
 		{
-			WriteByte((sbyte)TType.Stop);
+			return WriteByteAsync((sbyte)TType.Stop);
 		}
 
-		public override void WriteMapBegin(TMap map)
+        public override async Task WriteMapBeginAsync(TMap map)
 		{
-			WriteByte((sbyte)map.KeyType);
-			WriteByte((sbyte)map.ValueType);
-			WriteI32(map.Count);
+			await WriteByteAsync((sbyte)map.KeyType);
+			await WriteByteAsync((sbyte)map.ValueType);
+			await WriteI32Async(map.Count);
 		}
 
-		public override void WriteMapEnd()
+        public override Task WriteMapEndAsync()
 		{
+            return NoopTask;
 		}
 
-		public override void WriteListBegin(TList list)
+        public override async Task WriteListBeginAsync(TList list)
 		{
-			WriteByte((sbyte)list.ElementType);
-			WriteI32(list.Count);
+			await WriteByteAsync((sbyte)list.ElementType);
+			await WriteI32Async(list.Count);
 		}
 
-		public override void WriteListEnd()
+        public override Task WriteListEndAsync()
 		{
+            return NoopTask;
 		}
 
-		public override void WriteSetBegin(TSet set)
+        public override async Task WriteSetBeginAsync(TSet set)
 		{
-			WriteByte((sbyte)set.ElementType);
-			WriteI32(set.Count);
+			await WriteByteAsync((sbyte)set.ElementType);
+			await WriteI32Async(set.Count);
 		}
 
-		public override void WriteSetEnd()
+        public override Task WriteSetEndAsync()
 		{
+            return NoopTask;
 		}
 
-		public override void WriteBool(bool b)
+        public override Task WriteBoolAsync(bool b)
 		{
-			WriteByte(b ? (sbyte)1 : (sbyte)0);
+			return WriteByteAsync(b ? (sbyte)1 : (sbyte)0);
 		}
 
 		private byte[] bout = new byte[1];
-		public override void WriteByte(sbyte b)
+        public override async Task WriteByteAsync(sbyte b)
 		{
 			bout[0] = (byte)b;
 			trans.Write(bout, 0, 1);
 		}
 
 		private byte[] i16out = new byte[2];
-		public override void WriteI16(short s)
+        public override async Task WriteI16Async(short s)
 		{
 			i16out[0] = (byte)(0xff & (s >> 8));
 			i16out[1] = (byte)(0xff & s);
@@ -172,7 +180,7 @@ namespace Thrift.Protocol
 		}
 
 		private byte[] i32out = new byte[4];
-		public override void WriteI32(int i32)
+        public override async Task WriteI32Async(int i32)
 		{
 			i32out[0] = (byte)(0xff & (i32 >> 24));
 			i32out[1] = (byte)(0xff & (i32 >> 16));
@@ -182,7 +190,7 @@ namespace Thrift.Protocol
 		}
 
 		private byte[] i64out = new byte[8];
-		public override void WriteI64(long i64)
+        public override async Task WriteI64Async(long i64)
 		{
 			i64out[0] = (byte)(0xff & (i64 >> 56));
 			i64out[1] = (byte)(0xff & (i64 >> 48));
@@ -195,19 +203,19 @@ namespace Thrift.Protocol
 			trans.Write(i64out, 0, 8);
 		}
 
-		public override void WriteDouble(double d)
+        public override Task WriteDoubleAsync(double d)
 		{
 #if !SILVERLIGHT
-			WriteI64(BitConverter.DoubleToInt64Bits(d));
+			return WriteI64Async(BitConverter.DoubleToInt64Bits(d));
 #else
             var bytes = BitConverter.GetBytes(d);
             WriteI64(BitConverter.ToInt64(bytes, 0));
 #endif
 		}
 
-		public override void WriteBinary(byte[] b)
+        public override async Task WriteBinaryAsync(byte[] b)
 		{
-			WriteI32(b.Length);
+			await WriteI32Async(b.Length);
 			trans.Write(b, 0, b.Length);
 		}
 
