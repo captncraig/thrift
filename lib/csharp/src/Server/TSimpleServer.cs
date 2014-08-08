@@ -125,7 +125,7 @@ namespace Thrift.Server
                     if (serverEventHandler != null)
                       serverEventHandler.processContext(connectionContext, inputTransport);
                     //Process client request (blocks until transport is readable)
-                    if (!processor.Process(inputProtocol, outputProtocol))
+                    if (!inputTransport.Peek() || !processor.Process(inputProtocol, outputProtocol))
                       break;
                   }
                 }

@@ -25,55 +25,73 @@ using System;
 
 namespace Thrift.Transport
 {
-	public abstract class TTransport : IDisposable
-	{
-		public abstract bool IsOpen
-		{
-			get;
-		}
+    public abstract class TTransport : IDisposable
+    {
+        public abstract bool IsOpen
+        {
+            get;
+        }
 
-		public bool Peek()
-		{
-			return IsOpen;
-		}
+        private byte[] _peekBuffer = new byte[1];
+        private bool _hasPeekByte = false;
 
-		public abstract void Open();
+        public bool Peek()
+        {
+            //If we already have a byte read but not consumed, do nothing.
+            if (_hasPeekByte) return true;
+            //If transport closed we can't peek.
+            if (!IsOpen) return false;
+            //Try to read one byte. If succeeds we will need to store it for the next read.
+            int bytes = Read(_peekBuffer, 0, 1);
+            if (bytes == 0)
+            {
+                return false;
+            }
+            _hasPeekByte = true;
+            return true;
+        }
 
-		public abstract void Close();
+        public abstract void Open();
 
-		public abstract int Read(byte[] buf, int off, int len);
+        public abstract void Close();
 
-		public int ReadAll(byte[] buf, int off, int len)
-		{
-			int got = 0;
-			int ret = 0;
+        public abstract int Read(byte[] buf, int off, int len);
 
-			while (got < len)
-			{
-				ret = Read(buf, off + got, len - got);
-				if (ret <= 0)
-				{
-					throw new TTransportException(
-						TTransportException.ExceptionType.EndOfFile,
-						"Cannot read, Remote side has closed");
-				}
-				got += ret;
-			}
+        public int ReadAll(byte[] buf, int off, int len)
+        {
+            int got = 0;
 
-			return got;
-		}
+            if (_hasPeekByte)
+            {
+                buf[off + got++] = _peekBuffer[0];
+                _hasPeekByte = false;
+            }
+            while (got < len)
+            {
+                int ret = Read(buf, off + got, len - got);
+                if (ret <= 0)
+                {
+                    throw new TTransportException(
+                        TTransportException.ExceptionType.EndOfFile,
+                        "Cannot read, Remote side has closed");
+                }
+                got += ret;
+            }
 
-		public virtual void Write(byte[] buf) 
-		{
-			Write (buf, 0, buf.Length);
-		}
+            return got;
+        }
 
-		public abstract void Write(byte[] buf, int off, int len);
+        public virtual void Write(byte[] buf)
+        {
+            Write(buf, 0, buf.Length);
+        }
 
-		public virtual void Flush()
-		{
-		}
-        
+        public abstract void Write(byte[] buf, int off, int len);
+
+        public virtual void Flush()
+        {
+        }
+
         public virtual IAsyncResult BeginFlush(AsyncCallback callback, object state)
         {
             throw new TTransportException(
@@ -88,16 +106,16 @@ namespace Thrift.Transport
                 "Asynchronous operations are not supported by this transport.");
         }
 
-		#region " IDisposable Support "
-		// IDisposable
-		protected abstract void Dispose(bool disposing);
+        #region " IDisposable Support "
+        // IDisposable
+        protected abstract void Dispose(bool disposing);
 
-		public void Dispose()
-		{
-			// Do not change this code.  Put cleanup code in Dispose(ByVal disposing As Boolean) above.
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-		#endregion
-	}
+        public void Dispose()
+        {
+            // Do not change this code.  Put cleanup code in Dispose(ByVal disposing As Boolean) above.
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
+    }
 }
