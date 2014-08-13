@@ -65,6 +65,8 @@ class t_csharp_generator : public t_oop_generator
       if (async_ && async_ctp_) {
         throw "argument error: Cannot specify both async and asyncctp; they are incompatible.";
       }
+	  iter = parsed_options.find("task");
+	  task_ = (iter != parsed_options.end());
 
       iter = parsed_options.find("nullable");
       nullable_ = (iter != parsed_options.end());
@@ -189,6 +191,7 @@ class t_csharp_generator : public t_oop_generator
     std::string namespace_dir_;
     bool async_;
     bool async_ctp_;
+	bool task_;
     bool nullable_;
     bool union_;
     bool hashcode_;
@@ -236,6 +239,7 @@ void t_csharp_generator::init_generator() {
   pverbose("C# options:\n");
   pverbose("- async ...... %s\n", (async_ ? "ON" : "off"));
   pverbose("- async_ctp .. %s\n", (async_ctp_ ? "ON" : "off"));
+  pverbose("- task ...... %s\n", (task_ ? "ON" : "off"));
   pverbose("- nullable ... %s\n", (nullable_ ? "ON" : "off"));
   pverbose("- union ...... %s\n", (union_ ? "ON" : "off"));
   pverbose("- hashcode ... %s\n", (hashcode_ ? "ON" : "off"));
@@ -385,7 +389,7 @@ string t_csharp_generator::csharp_type_usings() {
     "using System.Collections.Generic;\n" +
     "using System.Text;\n" +
     "using System.IO;\n" +
-    ((async_||async_ctp_) ? "using System.Threading.Tasks;\n" : "") +
+    ((async_||async_ctp_||task_) ? "using System.Threading.Tasks;\n" : "") +
     "using Thrift;\n" +
     "using Thrift.Collections;\n" +
     ((serialize_||wcf_) ? "#if !SILVERLIGHT\n" : "") +
@@ -868,6 +872,12 @@ void t_csharp_generator::generate_csharp_struct_reader(ofstream& out, t_struct* 
   indent(out) <<
     "public void Read (TProtocol iprot)" << endl;
   scope_up(out);
+  if (task_){
+	  indent(out) << "ReadAsync(iprot).Wait();" << endl;
+	  scope_down(out);
+	  indent(out) << "public async Task ReadAsync(TProtocol iprot)" << endl;
+	  scope_up(out);
+  }
 
   const vector<t_field*>& fields = tstruct->get_members();
   vector<t_field*>::const_iterator f_iter;
@@ -878,17 +888,18 @@ void t_csharp_generator::generate_csharp_struct_reader(ofstream& out, t_struct* 
       indent(out) << "bool isset_" << (*f_iter)->get_name() << " = false;" << endl;
     }
   }
-
+  string async = task_ ? "Async":"";
+  string await = task_ ? "await ":"";
   indent(out) <<
     "TField field;" << endl <<
-    indent() << "iprot.ReadStructBegin();" << endl;
+    indent() << await << "iprot.ReadStructBegin"<< async<<"();" << endl;
 
   indent(out) <<
     "while (true)" << endl;
   scope_up(out);
 
   indent(out) <<
-    "field = iprot.ReadFieldBegin();" << endl;
+    "field = "<<await <<"iprot.ReadFieldBegin"<<async <<"();" << endl;
 
   indent(out) <<
     "if (field.Type == TType.Stop) { " << endl;
@@ -921,7 +932,7 @@ void t_csharp_generator::generate_csharp_struct_reader(ofstream& out, t_struct* 
     indent_down();
     out <<
       indent() << "} else { " << endl <<
-      indent() << "  TProtocolUtil.Skip(iprot, field.Type);" << endl <<
+      indent() << "  "<<await << "TProtocolUtil.Skip"<<async<<"(iprot, field.Type);" << endl <<
       indent() << "}" << endl <<
       indent() << "break;" << endl;
     indent_down();
@@ -930,19 +941,19 @@ void t_csharp_generator::generate_csharp_struct_reader(ofstream& out, t_struct* 
   indent(out) <<
     "default: " << endl;
   indent_up();
-  indent(out) << "TProtocolUtil.Skip(iprot, field.Type);" << endl;
+  indent(out) << await << "TProtocolUtil.Skip" << async << "(iprot, field.Type);" << endl;
   indent(out) << "break;" << endl;
   indent_down();
 
   scope_down(out);
 
-  indent(out) <<
-    "iprot.ReadFieldEnd();" << endl;
+  indent(out) << await <<
+    "iprot.ReadFieldEnd"<< async <<"();" << endl;
 
   scope_down(out);
 
-  indent(out) <<
-    "iprot.ReadStructEnd();" << endl;
+  indent(out) << await <<
+	  "iprot.ReadStructEnd" << async << "();" << endl;
 
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
     if (field_is_required((*f_iter))) {
@@ -963,6 +974,13 @@ void t_csharp_generator::generate_csharp_struct_writer(ofstream& out, t_struct* 
   out <<
     indent() << "public void Write(TProtocol oprot) {" << endl;
   indent_up();
+  if (task_){
+	  indent(out) << "WriteAsync(oprot).Wait();"<<endl;
+	  indent_down();
+	  indent(out) << "}" << endl;
+	  indent(out) << "public async Task WriteAsync(TProtocol oprot) {" << endl;
+	  indent_up();
+  }
 
   string name = tstruct->get_name();
   const vector<t_field*>& fields = tstruct->get_sorted_members();
@@ -970,8 +988,14 @@ void t_csharp_generator::generate_csharp_struct_writer(ofstream& out, t_struct* 
 
   indent(out) <<
     "TStruct struc = new TStruct(\"" << name << "\");" << endl;
-  indent(out) <<
-    "oprot.WriteStructBegin(struc);" << endl;
+  if (task_){
+	  indent(out) <<
+		  "await oprot.WriteStructBeginAsync(struc);" << endl;
+  }
+  else{
+	  indent(out) <<
+		  "oprot.WriteStructBegin(struc);" << endl;
+  }
 
   if (fields.size() > 0) {
     indent(out) << "TField field = new TField();" << endl;
@@ -996,11 +1020,21 @@ void t_csharp_generator::generate_csharp_struct_writer(ofstream& out, t_struct* 
       indent(out) << "field.Name = \"" << (*f_iter)->get_name() << "\";" << endl;
       indent(out) << "field.Type = " << type_to_enum((*f_iter)->get_type()) << ";" << endl;
       indent(out) << "field.ID = " << (*f_iter)->get_key() << ";" << endl;
-      indent(out) << "oprot.WriteFieldBegin(field);" << endl;
+	  if (task_){
+		  indent(out) << "await oprot.WriteFieldBeginAsync(field);" << endl;
+	  }
+	  else{
+		  indent(out) << "oprot.WriteFieldBegin(field);" << endl;
+	  }
 
       generate_serialize_field(out, *f_iter);
 
-      indent(out) << "oprot.WriteFieldEnd();" << endl;
+	  if (task_){
+		  indent(out) << "await oprot.WriteFieldEndAsync();" << endl;
+	  }
+	  else{
+		  indent(out) << "oprot.WriteFieldEnd();" << endl;
+	  }
       if (!is_required) {
         indent_down();
         indent(out) << "}" << endl;
@@ -1008,8 +1042,14 @@ void t_csharp_generator::generate_csharp_struct_writer(ofstream& out, t_struct* 
     }
   }
 
-  indent(out) << "oprot.WriteFieldStop();" << endl;
-  indent(out) << "oprot.WriteStructEnd();" << endl;
+  if (task_){
+	  indent(out) << "await oprot.WriteFieldStopAsync();" << endl;
+	  indent(out) << "await oprot.WriteStructEndAsync();" << endl;
+  }
+  else{
+	  indent(out) << "oprot.WriteFieldStop();" << endl;
+	  indent(out) << "oprot.WriteStructEnd();" << endl;
+  }
 
   indent_down();
 
@@ -2133,6 +2173,8 @@ void t_csharp_generator::generate_deserialize_field(ofstream& out, t_field* tfie
   }
 
   string name = prefix + (is_propertyless ? "" : prop_name(tfield));
+  string await = task_ ? "await " : "";
+  string async = task_ ? "Async" : "";
 
   if (type->is_struct() || type->is_xception()) {
     generate_deserialize_struct(out, (t_struct*)type, name);
@@ -2147,7 +2189,7 @@ void t_csharp_generator::generate_deserialize_field(ofstream& out, t_field* tfie
       out << "(" << type_name(type, false, true) << ")";
     }
 
-    out << "iprot.";
+    out << await << "iprot.";
 
     if (type->is_base_type()) {
       t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
@@ -2157,34 +2199,34 @@ void t_csharp_generator::generate_deserialize_field(ofstream& out, t_field* tfie
           break;
         case t_base_type::TYPE_STRING:
           if (((t_base_type*)type)->is_binary()) {
-             out << "ReadBinary();";
+             out << "ReadBinary"<<async<<"();";
           } else {
-            out << "ReadString();";
+			  out << "ReadString" << async << "();";
           }
           break;
         case t_base_type::TYPE_BOOL:
-          out << "ReadBool();";
+			out << "ReadBool" << async << "();";
           break;
         case t_base_type::TYPE_BYTE:
-          out << "ReadByte();";
+			out << "ReadByte" << async << "();";
           break;
         case t_base_type::TYPE_I16:
-          out << "ReadI16();";
+			out << "ReadI16" << async << "();";
           break;
         case t_base_type::TYPE_I32:
-          out << "ReadI32();";
+			out << "ReadI32" << async << "();";
           break;
         case t_base_type::TYPE_I64:
-          out << "ReadI64();";
+			out << "ReadI64" << async << "();";
           break;
         case t_base_type::TYPE_DOUBLE:
-          out << "ReadDouble();";
+			out << "ReadDouble" << async << "();";
           break;
         default:
           throw "compiler error: no C# name for base type " + t_base_type::t_base_name(tbase);
       }
     } else if (type->is_enum()) {
-      out << "ReadI32();";
+		out << "ReadI32" << async << "();";
     }
     out << endl;
   } else {
@@ -2195,7 +2237,13 @@ void t_csharp_generator::generate_deserialize_field(ofstream& out, t_field* tfie
 void t_csharp_generator::generate_deserialize_struct(ofstream& out, t_struct* tstruct, string prefix) {
   if (union_ && tstruct->is_union()) {
     out << indent() << prefix << " = " << type_name(tstruct) << ".Read(iprot);" << endl;
-  } else {
+  }
+  else if (task_){
+	  out <<
+		  indent() << prefix << " = new " << type_name(tstruct) << "();" << endl <<
+		  indent() << "await " << prefix << ".ReadAsync(iprot);" << endl;
+  }
+  else {
     out <<
       indent() << prefix << " = new " << type_name(tstruct) << "();" << endl <<
       indent() << prefix << ".Read(iprot);" << endl;
@@ -2214,18 +2262,19 @@ void t_csharp_generator::generate_deserialize_container(ofstream& out, t_type* t
   } else if (ttype->is_list()) {
     obj = tmp("_list");
   }
-
+  string await = task_ ? "await " : "";
+  string async = task_ ? "Async" : "";
   indent(out) <<
     prefix << " = new " << type_name(ttype, false, true) << "();" <<endl;
   if (ttype->is_map()) {
     out <<
-      indent() << "TMap " << obj << " = iprot.ReadMapBegin();" << endl;
+      indent() << "TMap " << obj << " = "<<await <<"iprot.ReadMapBegin"<<async<<"();" << endl;
   } else if (ttype->is_set()) {
     out <<
-      indent() << "TSet " << obj << " = iprot.ReadSetBegin();" << endl;
+		indent() << "TSet " << obj << " = " << await << "iprot.ReadSetBegin" << async << "();" << endl;
   } else if (ttype->is_list()) {
     out <<
-      indent() << "TList " << obj << " = iprot.ReadListBegin();" << endl;
+		indent() << "TList " << obj << " = " << await << "iprot.ReadListBegin" << async << "();" << endl;
   }
 
   string i = tmp("_i");
@@ -2244,11 +2293,11 @@ void t_csharp_generator::generate_deserialize_container(ofstream& out, t_type* t
   scope_down(out);
 
   if (ttype->is_map()) {
-    indent(out) << "iprot.ReadMapEnd();" << endl;
+	  indent(out) << await << "iprot.ReadMapEnd" << async << "();" << endl;
   } else if (ttype->is_set()) {
-    indent(out) << "iprot.ReadSetEnd();" << endl;
+	  indent(out) << await << "iprot.ReadSetEnd" << async << "();" << endl;
   } else if (ttype->is_list()) {
-    indent(out) << "iprot.ReadListEnd();" << endl;
+	  indent(out) << await << "iprot.ReadListEnd" << async << "();" << endl;
   }
 
   scope_down(out);
@@ -2316,12 +2365,16 @@ void t_csharp_generator::generate_deserialize_list_element(ofstream& out, t_list
   } else if (type->is_container()) {
     generate_serialize_container(out, type, name);
   } else if (type->is_base_type() || type->is_enum()) {
-    indent(out) <<
-      "oprot.";
+    
     
     string nullable_name = nullable_ && !is_element && !field_is_required(tfield)
       ? name + ".Value"
       : name;
+
+	string await = task_ ? "await " : "";
+	string async = task_ ? "Async" : "";
+
+	indent(out) << await << "oprot.";
 
     if (type->is_base_type()) {
       t_base_type::t_base tbase = ((t_base_type*)type)->get_base();
@@ -2331,35 +2384,35 @@ void t_csharp_generator::generate_deserialize_list_element(ofstream& out, t_list
           break;
         case t_base_type::TYPE_STRING:
           if (((t_base_type*)type)->is_binary()) {
-            out << "WriteBinary(";
+            out << "WriteBinary"<<async<<"(";
           } else {
-            out << "WriteString(";
+			  out << "WriteString" << async << "(";
           }
           out << name << ");";
           break;
         case t_base_type::TYPE_BOOL:
-          out << "WriteBool(" << nullable_name << ");";
+			out << "WriteBool" << async << "(" << nullable_name << ");";
           break;
         case t_base_type::TYPE_BYTE:
-          out << "WriteByte(" << nullable_name << ");";
+			out << "WriteByte" << async << "(" << nullable_name << ");";
           break;
         case t_base_type::TYPE_I16:
-          out << "WriteI16(" << nullable_name << ");";
+			out << "WriteI16" << async << "(" << nullable_name << ");";
           break;
         case t_base_type::TYPE_I32:
-          out << "WriteI32(" << nullable_name << ");";
+			out << "WriteI32" << async << "(" << nullable_name << ");";
           break;
         case t_base_type::TYPE_I64:
-          out << "WriteI64(" << nullable_name << ");";
+			out << "WriteI64" << async << "(" << nullable_name << ");";
           break;
         case t_base_type::TYPE_DOUBLE:
-          out << "WriteDouble(" << nullable_name << ");";
+			out << "WriteDouble" << async << "(" << nullable_name << ");";
           break;
         default:
           throw "compiler error: no C# name for base type " + t_base_type::t_base_name(tbase);
       }
     } else if (type->is_enum()) {
-      out << "WriteI32((int)" << nullable_name << ");";
+		out << "WriteI32" << async << "((int)" << nullable_name << ");";
     }
     out << endl;
   } else {
@@ -2372,27 +2425,34 @@ void t_csharp_generator::generate_deserialize_list_element(ofstream& out, t_list
 
 void t_csharp_generator::generate_serialize_struct(ofstream& out, t_struct* tstruct, string prefix) {
   (void) tstruct;
-  out <<
-    indent() << prefix << ".Write(oprot);" << endl;
+  if (task_){
+	  out <<
+		  indent() << "await " << prefix << ".WriteAsync(oprot);" << endl;
+
+  }
+  else{
+	  out <<
+		  indent() << prefix << ".Write(oprot);" << endl;
+  }
 }
 
 void t_csharp_generator::generate_serialize_container(ofstream& out, t_type* ttype, string prefix) {
   scope_up(out);
-
+  string await = task_ ? "await " : "";
   if (ttype->is_map()) {
     indent(out) <<
-      "oprot.WriteMapBegin(new TMap(" <<
+      await << "oprot.WriteMapBegin(new TMap(" <<
       type_to_enum(((t_map*)ttype)->get_key_type()) << ", " <<
       type_to_enum(((t_map*)ttype)->get_val_type()) << ", " <<
       prefix << ".Count));" << endl;
   } else if (ttype->is_set()) {
     indent(out) <<
-      "oprot.WriteSetBegin(new TSet(" <<
+		await << "oprot.WriteSetBegin(new TSet(" <<
       type_to_enum(((t_set*)ttype)->get_elem_type()) << ", " <<
       prefix << ".Count));" << endl;
   } else if (ttype->is_list()) {
     indent(out) <<
-      "oprot.WriteListBegin(new TList(" <<
+		await << "oprot.WriteListBegin(new TList(" <<
       type_to_enum(((t_list*)ttype)->get_elem_type()) << ", " <<
       prefix << ".Count));" << endl;
   }
@@ -2866,5 +2926,6 @@ THRIFT_REGISTER_GENERATOR(csharp, "C#",
 "    nullable:        Use nullable types for properties.\n"
 "    hashcode:        Generate a hashcode and equals implementation for classes.\n"
 "    union:           Use new union typing, which includes a static read function for union types.\n"
+"    task:            True async support using async/await.\n"
 )
 
