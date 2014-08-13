@@ -133,18 +133,18 @@ namespace Thrift.Protocol
          * Used internally by other writing methods that know they need to Write a byte.
          */
         private byte[] byteDirectBuffer = new byte[1];
-        private void WriteByteDirect(byte b)
+        private Task WriteByteDirectAsync(byte b)
         {
             byteDirectBuffer[0] = b;
-            trans.WriteZZZ(byteDirectBuffer);
+            return trans.WriteAsync(byteDirectBuffer);
         }
 
         /** 
          * Writes a byte without any possibility of all that field header nonsense.
          */
-        private void WriteByteDirect(int n)
+        private Task WriteByteDirectAsync(int n)
         {
-            WriteByteDirect((byte)n);
+            return WriteByteDirectAsync((byte)n);
         }
 
         /**
@@ -152,7 +152,7 @@ namespace Thrift.Protocol
          * TODO: make a permanent buffer like WriteVarint64?
          */
         byte[] i32buf = new byte[5];
-        private void WriteVarint32(uint n)
+        private Task WriteVarint32Async(uint n)
         {
             int idx = 0;
             while (true)
@@ -171,7 +171,7 @@ namespace Thrift.Protocol
                     n >>= 7;
                 }
             }
-            trans.WriteZZZ(i32buf, 0, idx);
+            return trans.WriteAsync(i32buf, 0, idx);
         }
 
         /**
@@ -180,9 +180,9 @@ namespace Thrift.Protocol
         */
         public override async Task WriteMessageBeginAsync(TMessage message)
         {
-            WriteByteDirect(PROTOCOL_ID);
-            WriteByteDirect((byte)((VERSION & VERSION_MASK) | ((((uint)message.Type) << TYPE_SHIFT_AMOUNT) & TYPE_MASK)));
-            WriteVarint32((uint)message.SeqID);
+            await WriteByteDirectAsync(PROTOCOL_ID);
+            await WriteByteDirectAsync((byte)((VERSION & VERSION_MASK) | ((((uint)message.Type) << TYPE_SHIFT_AMOUNT) & TYPE_MASK)));
+            await WriteVarint32Async((uint)message.SeqID);
             await WriteStringAsync(message.Name);
         }
 
@@ -244,12 +244,12 @@ namespace Thrift.Protocol
             if (field.ID > lastFieldId_ && field.ID - lastFieldId_ <= 15)
             {
                 // Write them together
-                WriteByteDirect((field.ID - lastFieldId_) << 4 | typeToWrite);
+                await WriteByteDirectAsync((field.ID - lastFieldId_) << 4 | typeToWrite);
             }
             else
             {
                 // Write them separate
-                WriteByteDirect(typeToWrite);
+                await WriteByteDirectAsync(typeToWrite);
                 await WriteI16Async(field.ID);
             }
 
@@ -260,9 +260,9 @@ namespace Thrift.Protocol
         /**
          * Write the STOP symbol so we know there are no more fields in this struct.
          */
-        public override async Task WriteFieldStopAsync()
+        public override Task WriteFieldStopAsync()
         {
-            WriteByteDirect(Types.STOP);
+            return WriteByteDirectAsync(Types.STOP);
         }
 
         /**
@@ -273,29 +273,29 @@ namespace Thrift.Protocol
         {
             if (map.Count == 0)
             {
-                WriteByteDirect(0);
+                await WriteByteDirectAsync(0);
             }
             else
             {
-                WriteVarint32((uint)map.Count);
-                WriteByteDirect(getCompactType(map.KeyType) << 4 | getCompactType(map.ValueType));
+                await WriteVarint32Async((uint)map.Count);
+                await WriteByteDirectAsync(getCompactType(map.KeyType) << 4 | getCompactType(map.ValueType));
             }
         }
 
         /** 
          * Write a list header.
          */
-        public override async Task WriteListBeginAsync(TList list)
+        public override Task WriteListBeginAsync(TList list)
         {
-            WriteCollectionBegin(list.ElementType, list.Count);
+            return WriteCollectionBeginAsync(list.ElementType, list.Count);
         }
 
         /**
          * Write a set header.
          */
-        public override async Task WriteSetBeginAsync(TSet set)
+        public override Task WriteSetBeginAsync(TSet set)
         {
-            WriteCollectionBegin(set.ElementType, set.Count);
+            return WriteCollectionBeginAsync(set.ElementType, set.Count);
         }
 
         /**
@@ -315,7 +315,7 @@ namespace Thrift.Protocol
             else
             {
                 // we're not part of a field, so just Write the value.
-                WriteByteDirect(b ? Types.BOOLEAN_TRUE : Types.BOOLEAN_FALSE);
+                await WriteByteDirectAsync(b ? Types.BOOLEAN_TRUE : Types.BOOLEAN_FALSE);
             }
         }
 
@@ -324,7 +324,7 @@ namespace Thrift.Protocol
          */
         public override async Task WriteByteAsync(sbyte b)
         {
-            WriteByteDirect((byte)b);
+            await WriteByteDirectAsync((byte)b);
         }
 
         /**
@@ -332,7 +332,7 @@ namespace Thrift.Protocol
          */
         public override async Task WriteI16Async(short i16)
         {
-            WriteVarint32(intToZigZag(i16));
+            await WriteVarint32Async(intToZigZag(i16));
         }
 
         /**
@@ -340,48 +340,48 @@ namespace Thrift.Protocol
          */
         public override async Task WriteI32Async(int i32)
         {
-            WriteVarint32(intToZigZag(i32));
+            await WriteVarint32Async(intToZigZag(i32));
         }
 
         /**
          * Write an i64 as a zigzag varint.
          */
-        public override async Task WriteI64Async(long i64)
+        public override Task WriteI64Async(long i64)
         {
-            WriteVarint64(longToZigzag(i64));
+            return WriteVarint64Async(longToZigzag(i64));
         }
 
         /**
          * Write a double to the wire as 8 bytes.
          */
-        public override async Task WriteDoubleAsync(double dub)
+        public override Task WriteDoubleAsync(double dub)
         {
             byte[] data = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
             fixedLongToBytes(BitConverter.DoubleToInt64Bits(dub), data, 0);
-            trans.WriteZZZ(data);
+            return trans.WriteAsync(data);
         }
 
         /**
          * Write a string to the wire with a varint size preceding.
          */
-        public override async Task WriteStringAsync(String str)
+        public override Task WriteStringAsync(String str)
         {
             byte[] bytes = UTF8Encoding.UTF8.GetBytes(str);
-            WriteBinary(bytes, 0, bytes.Length);
+            return WriteBinaryAsync(bytes, 0, bytes.Length);
         }
 
         /**
          * Write a byte array, using a varint for the size. 
          */
-        public override async Task WriteBinaryAsync(byte[] bin)
+        public override Task WriteBinaryAsync(byte[] bin)
         {
-            WriteBinary(bin, 0, bin.Length);
+            return WriteBinaryAsync(bin, 0, bin.Length);
         }
 
-        private void WriteBinary(byte[] buf, int offset, int length)
+        private async Task WriteBinaryAsync(byte[] buf, int offset, int length)
         {
-            WriteVarint32((uint)length);
-            trans.WriteZZZ(buf, offset, length);
+            await WriteVarint32Async((uint)length);
+            await trans.WriteAsync(buf, offset, length);
         }
 
         //
@@ -403,16 +403,16 @@ namespace Thrift.Protocol
          * Abstract method for writing the start of lists and sets. List and sets on 
          * the wire differ only by the type indicator.
          */
-        protected void WriteCollectionBegin(TType elemType, int size)
+        protected async Task WriteCollectionBeginAsync(TType elemType, int size)
         {
             if (size <= 14)
             {
-                WriteByteDirect(size << 4 | getCompactType(elemType));
+                await WriteByteDirectAsync(size << 4 | getCompactType(elemType));
             }
             else
             {
-                WriteByteDirect(0xf0 | getCompactType(elemType));
-                WriteVarint32((uint)size);
+                await WriteByteDirectAsync(0xf0 | getCompactType(elemType));
+                await WriteVarint32Async((uint)size);
             }
         }
 
@@ -420,7 +420,7 @@ namespace Thrift.Protocol
          * Write an i64 as a varint. Results in 1-10 bytes on the wire.
          */
         byte[] varint64out = new byte[10];
-        private void WriteVarint64(ulong n)
+        private async Task WriteVarint64Async(ulong n)
         {
             int idx = 0;
             while (true)
@@ -436,7 +436,7 @@ namespace Thrift.Protocol
                     n >>= 7;
                 }
             }
-            trans.WriteZZZ(varint64out, 0, idx);
+            await trans.WriteAsync(varint64out, 0, idx);
         }
 
         /**

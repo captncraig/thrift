@@ -193,7 +193,7 @@ namespace Thrift.Protocol
 				this.proto = proto;
 			}
 
-			public virtual void Write() { }
+			public virtual async Task WriteAsync() { }
 
             public virtual async Task ReadAsync() { }
 
@@ -213,7 +213,7 @@ namespace Thrift.Protocol
 			}
 			private bool first = true;
 
-			public override void Write()
+			public override async Task WriteAsync()
 			{
 				if (first)
 				{
@@ -221,7 +221,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.trans.WriteZZZ(COMMA);
+					await proto.trans.WriteAsync(COMMA);
 				}
 			}
 
@@ -255,7 +255,7 @@ namespace Thrift.Protocol
 			private bool first = true;
 			private bool colon = true;
 
-			public override void Write()
+			public override async Task WriteAsync()
 			{
 				if (first)
 				{
@@ -264,7 +264,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.trans.WriteZZZ(colon ? COLON : COMMA);
+					await proto.trans.WriteAsync(colon ? COLON : COMMA);
 					colon = !colon;
 				}
 			}
@@ -435,10 +435,10 @@ namespace Thrift.Protocol
 		///<summary>
 		/// Write the bytes in array buf as a JSON characters, escaping as needed
 		///</summary>
-		private void WriteJSONString(byte[] b)
+		private async Task WriteJSONStringAsync(byte[] b)
 		{
-			context.Write();
-			trans.WriteZZZ(QUOTE);
+            await context.WriteAsync();
+            await trans.WriteAsync(QUOTE);
 			int len = b.Length;
 			for (int i = 0; i < len; i++)
 			{
@@ -446,12 +446,12 @@ namespace Thrift.Protocol
 				{
 					if (b[i] == BACKSLASH[0])
 					{
-						trans.WriteZZZ(BACKSLASH);
-						trans.WriteZZZ(BACKSLASH);
+                        await trans.WriteAsync(BACKSLASH);
+                        await trans.WriteAsync(BACKSLASH);
 					}
 					else
 					{
-						trans.WriteZZZ(b, i, 1);
+                        await trans.WriteAsync(b, i, 1);
 					}
 				}
 				else
@@ -459,51 +459,51 @@ namespace Thrift.Protocol
 					tempBuffer[0] = JSON_CHAR_TABLE[b[i]];
 					if (tempBuffer[0] == 1)
 					{
-						trans.WriteZZZ(b, i, 1);
+                        await trans.WriteAsync(b, i, 1);
 					}
 					else if (tempBuffer[0] > 1)
 					{
-						trans.WriteZZZ(BACKSLASH);
-						trans.WriteZZZ(tempBuffer, 0, 1);
+                        await trans.WriteAsync(BACKSLASH);
+                        await trans.WriteAsync(tempBuffer, 0, 1);
 					}
 					else
 					{
-						trans.WriteZZZ(ESCSEQ);
+                        await trans.WriteAsync(ESCSEQ);
 						tempBuffer[0] = HexChar((byte)(b[i] >> 4));
 						tempBuffer[1] = HexChar(b[i]);
-						trans.WriteZZZ(tempBuffer, 0, 2);
+                        await trans.WriteAsync(tempBuffer, 0, 2);
 					}
 				}
 			}
-			trans.WriteZZZ(QUOTE);
+            await trans.WriteAsync(QUOTE);
 		}
 
 		///<summary>
 		/// Write out number as a JSON value. If the context dictates so, it will be
 		/// wrapped in quotes to output as a JSON string.
 		///</summary>
-		private void WriteJSONInteger(long num)
+		private async Task WriteJSONIntegerAsync(long num)
 		{
-			context.Write();
+            await context.WriteAsync();
 			String str = num.ToString();
 
 			bool escapeNum = context.EscapeNumbers();
 			if (escapeNum)
-				trans.WriteZZZ(QUOTE);
+                await trans.WriteAsync(QUOTE);
 
-			trans.WriteZZZ(utf8Encoding.GetBytes(str));
+            await trans.WriteAsync(utf8Encoding.GetBytes(str));
 
 			if (escapeNum)
-				trans.WriteZZZ(QUOTE);
+                await trans.WriteAsync(QUOTE);
 		}
 
 		///<summary>
 		/// Write out a double as a JSON value. If it is NaN or infinity or if the
 		/// context dictates escaping, Write out as JSON string.
 		///</summary>
-		private void WriteJSONDouble(double num)
+		private async Task WriteJSONDoubleAsync(double num)
 		{
-			context.Write();
+            await context.WriteAsync();
 			String str = num.ToString(CultureInfo.InvariantCulture);
 			bool special = false;
 
@@ -524,21 +524,21 @@ namespace Thrift.Protocol
 			bool escapeNum = special || context.EscapeNumbers();
 
 			if (escapeNum)
-				trans.WriteZZZ(QUOTE);
+                await trans.WriteAsync(QUOTE);
 
-			trans.WriteZZZ(utf8Encoding.GetBytes(str));
+            await trans.WriteAsync(utf8Encoding.GetBytes(str));
 
 			if (escapeNum)
-				trans.WriteZZZ(QUOTE);
+                await trans.WriteAsync(QUOTE);
 		}
 		///<summary>
 		/// Write out contents of byte array b as a JSON string with base-64 encoded
 		/// data
 		///</summary>
-		private void WriteJSONBase64(byte[] b)
+		private async Task WriteJSONBase64Async(byte[] b)
 		{
-			context.Write();
-			trans.WriteZZZ(QUOTE);
+            await context.WriteAsync();
+            await trans.WriteAsync(QUOTE);
 
 			int len = b.Length;
 			int off = 0;
@@ -547,7 +547,7 @@ namespace Thrift.Protocol
 			{
 				// Encode 3 bytes at a time
 				TBase64Utils.encode(b, off, 3, tempBuffer, 0);
-				trans.WriteZZZ(tempBuffer, 0, 4);
+                await trans.WriteAsync(tempBuffer, 0, 4);
 				off += 3;
 				len -= 3;
 			}
@@ -555,157 +555,157 @@ namespace Thrift.Protocol
 			{
 				// Encode remainder
 				TBase64Utils.encode(b, off, len, tempBuffer, 0);
-				trans.WriteZZZ(tempBuffer, 0, len + 1);
+                await trans.WriteAsync(tempBuffer, 0, len + 1);
 			}
 
-			trans.WriteZZZ(QUOTE);
+            await trans.WriteAsync(QUOTE);
 		}
 
-		private void WriteJSONObjectStart()
+        private async Task WriteJSONObjectStartAsync()
 		{
-			context.Write();
-			trans.WriteZZZ(LBRACE);
+            await context.WriteAsync();
+            await trans.WriteAsync(LBRACE);
 			PushContext(new JSONPairContext(this));
 		}
 
-		private void WriteJSONObjectEnd()
+        private Task WriteJSONObjectEndAsync()
 		{
 			PopContext();
-			trans.WriteZZZ(RBRACE);
+            return trans.WriteAsync(RBRACE);
 		}
 
-		private void WriteJSONArrayStart()
+        private async Task WriteJSONArrayStartAsync()
 		{
-			context.Write();
-			trans.WriteZZZ(LBRACKET);
+            await context.WriteAsync();
+            await trans.WriteAsync(LBRACKET);
 			PushContext(new JSONListContext(this));
 		}
 
-		private void WriteJSONArrayEnd()
+		private Task WriteJSONArrayEndAsync()
 		{
 			PopContext();
-			trans.WriteZZZ(RBRACKET);
+			return trans.WriteAsync(RBRACKET);
 		}
 
 		public override async Task WriteMessageBeginAsync(TMessage message)
 		{
-			WriteJSONArrayStart();
-			WriteJSONInteger(VERSION);
+            await WriteJSONArrayStartAsync();
+            await WriteJSONIntegerAsync(VERSION);
 
 			byte[] b = utf8Encoding.GetBytes(message.Name);
-			WriteJSONString(b);
+            await WriteJSONStringAsync(b);
 
-			WriteJSONInteger((long)message.Type);
-			WriteJSONInteger(message.SeqID);
+            await WriteJSONIntegerAsync((long)message.Type);
+            await WriteJSONIntegerAsync(message.SeqID);
 		}
 
-        public override async Task WriteMessageEndAsync()
+        public override Task WriteMessageEndAsync()
 		{
-			WriteJSONArrayEnd();
+            return WriteJSONArrayEndAsync();
 		}
 
-        public override async Task WriteStructBeginAsync(TStruct str)
+        public override Task WriteStructBeginAsync(TStruct str)
 		{
-			WriteJSONObjectStart();
+			return WriteJSONObjectStartAsync();
 		}
 
-        public override async Task WriteStructEndAsync()
+        public override Task WriteStructEndAsync()
 		{
-			WriteJSONObjectEnd();
+			return WriteJSONObjectEndAsync();
 		}
 
         public override async Task WriteFieldBeginAsync(TField field)
 		{
-			WriteJSONInteger(field.ID);
-			WriteJSONObjectStart();
-			WriteJSONString(GetTypeNameForTypeID(field.Type));
+            await WriteJSONIntegerAsync(field.ID);
+            await WriteJSONObjectStartAsync();
+            await WriteJSONStringAsync(GetTypeNameForTypeID(field.Type));
 		}
 
-        public override async Task WriteFieldEndAsync()
+        public override Task WriteFieldEndAsync()
 		{
-			WriteJSONObjectEnd();
+            return WriteJSONObjectEndAsync();
 		}
 
         public override async Task WriteFieldStopAsync() { }
 
         public override async Task WriteMapBeginAsync(TMap map)
 		{
-			WriteJSONArrayStart();
-			WriteJSONString(GetTypeNameForTypeID(map.KeyType));
-			WriteJSONString(GetTypeNameForTypeID(map.ValueType));
-			WriteJSONInteger(map.Count);
-			WriteJSONObjectStart();
+            await WriteJSONArrayStartAsync();
+            await WriteJSONStringAsync(GetTypeNameForTypeID(map.KeyType));
+            await WriteJSONStringAsync(GetTypeNameForTypeID(map.ValueType));
+            await WriteJSONIntegerAsync(map.Count);
+            await WriteJSONObjectStartAsync();
 		}
 
         public override async Task WriteMapEndAsync()
 		{
-			WriteJSONObjectEnd();
-			WriteJSONArrayEnd();
+            await WriteJSONObjectEndAsync();
+            await WriteJSONArrayEndAsync();
 		}
 
         public override async Task WriteListBeginAsync(TList list)
 		{
-			WriteJSONArrayStart();
-			WriteJSONString(GetTypeNameForTypeID(list.ElementType));
-			WriteJSONInteger(list.Count);
+            await WriteJSONArrayStartAsync();
+            await WriteJSONStringAsync(GetTypeNameForTypeID(list.ElementType));
+            await WriteJSONIntegerAsync(list.Count);
 		}
 
         public override async Task WriteListEndAsync()
 		{
-			WriteJSONArrayEnd();
+            await WriteJSONArrayEndAsync();
 		}
 
         public override async Task WriteSetBeginAsync(TSet set)
 		{
-			WriteJSONArrayStart();
-			WriteJSONString(GetTypeNameForTypeID(set.ElementType));
-			WriteJSONInteger(set.Count);
+            await WriteJSONArrayStartAsync();
+            await WriteJSONStringAsync(GetTypeNameForTypeID(set.ElementType));
+            await WriteJSONIntegerAsync(set.Count);
 		}
 
-        public override async Task WriteSetEndAsync()
+        public override Task WriteSetEndAsync()
 		{
-			WriteJSONArrayEnd();
+            return WriteJSONArrayEndAsync();
 		}
 
-        public override async Task WriteBoolAsync(bool b)
+        public override Task WriteBoolAsync(bool b)
 		{
-			WriteJSONInteger(b ? (long)1 : (long)0);
+            return WriteJSONIntegerAsync(b ? (long)1 : (long)0);
 		}
 
-        public override async Task WriteByteAsync(sbyte b)
+        public override Task WriteByteAsync(sbyte b)
 		{
-			WriteJSONInteger((long)b);
+            return WriteJSONIntegerAsync((long)b);
 		}
 
-        public override async Task WriteI16Async(short i16)
+        public override Task WriteI16Async(short i16)
 		{
-			WriteJSONInteger((long)i16);
+            return WriteJSONIntegerAsync((long)i16);
 		}
 
-        public override async Task WriteI32Async(int i32)
+        public override Task WriteI32Async(int i32)
 		{
-			WriteJSONInteger((long)i32);
+            return WriteJSONIntegerAsync((long)i32);
 		}
 
-        public override async Task WriteI64Async(long i64)
+        public override Task WriteI64Async(long i64)
 		{
-			WriteJSONInteger(i64);
+            return WriteJSONIntegerAsync(i64);
 		}
 
-        public override async Task WriteDoubleAsync(double dub)
+        public override Task WriteDoubleAsync(double dub)
 		{
-			WriteJSONDouble(dub);
+            return WriteJSONDoubleAsync(dub);
 		}
 
-		public override async Task WriteStringAsync(String str)
+		public override Task WriteStringAsync(String str)
 		{
 			byte[] b = utf8Encoding.GetBytes(str);
-			WriteJSONString(b);
+            return WriteJSONStringAsync(b);
 		}
 
-        public override async Task WriteBinaryAsync(byte[] bin)
+        public override Task WriteBinaryAsync(byte[] bin)
 		{
-			WriteJSONBase64(bin);
+            return WriteJSONBase64Async(bin);
 		}
 
 		/**

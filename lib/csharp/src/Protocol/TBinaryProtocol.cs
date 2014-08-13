@@ -165,32 +165,32 @@ namespace Thrift.Protocol
 		}
 
 		private byte[] bout = new byte[1];
-        public override async Task WriteByteAsync(sbyte b)
+        public override Task WriteByteAsync(sbyte b)
 		{
 			bout[0] = (byte)b;
-			trans.WriteZZZ(bout, 0, 1);
+			return trans.WriteAsync(bout, 0, 1);
 		}
 
 		private byte[] i16out = new byte[2];
-        public override async Task WriteI16Async(short s)
+        public override Task WriteI16Async(short s)
 		{
 			i16out[0] = (byte)(0xff & (s >> 8));
 			i16out[1] = (byte)(0xff & s);
-			trans.WriteZZZ(i16out, 0, 2);
+            return trans.WriteAsync(i16out, 0, 2);
 		}
 
 		private byte[] i32out = new byte[4];
-        public override async Task WriteI32Async(int i32)
+        public override Task WriteI32Async(int i32)
 		{
 			i32out[0] = (byte)(0xff & (i32 >> 24));
 			i32out[1] = (byte)(0xff & (i32 >> 16));
 			i32out[2] = (byte)(0xff & (i32 >> 8));
 			i32out[3] = (byte)(0xff & i32);
-			trans.WriteZZZ(i32out, 0, 4);
+            return trans.WriteAsync(i32out, 0, 4);
 		}
 
 		private byte[] i64out = new byte[8];
-        public override async Task WriteI64Async(long i64)
+        public override Task WriteI64Async(long i64)
 		{
 			i64out[0] = (byte)(0xff & (i64 >> 56));
 			i64out[1] = (byte)(0xff & (i64 >> 48));
@@ -200,7 +200,7 @@ namespace Thrift.Protocol
 			i64out[5] = (byte)(0xff & (i64 >> 16));
 			i64out[6] = (byte)(0xff & (i64 >> 8));
 			i64out[7] = (byte)(0xff & i64);
-			trans.WriteZZZ(i64out, 0, 8);
+            return trans.WriteAsync(i64out, 0, 8);
 		}
 
         public override Task WriteDoubleAsync(double d)
@@ -209,14 +209,14 @@ namespace Thrift.Protocol
 			return WriteI64Async(BitConverter.DoubleToInt64Bits(d));
 #else
             var bytes = BitConverter.GetBytes(d);
-            WriteI64(BitConverter.ToInt64(bytes, 0));
+            return WriteI64Async(BitConverter.ToInt64(bytes, 0));
 #endif
-		}
+        }
 
         public override async Task WriteBinaryAsync(byte[] b)
 		{
 			await WriteI32Async(b.Length);
-			trans.WriteZZZ(b, 0, b.Length);
+            await trans.WriteAsync(b, 0, b.Length);
 		}
 
 		#endregion

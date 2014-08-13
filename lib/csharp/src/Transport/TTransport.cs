@@ -75,7 +75,7 @@ namespace Thrift.Transport
 			return got;
 		}
 
-	    public void WriteZZZ(byte[] buf)
+	    public void Write(byte[] buf)
 	    {
 	        WriteAsync(buf).Wait();
 	    }
@@ -84,7 +84,7 @@ namespace Thrift.Transport
 			return WriteAsync (buf, 0, buf.Length);
 		}
 
-	    public void WriteZZZ(byte[] buf, int off, int len)
+	    public void Write(byte[] buf, int off, int len)
 	    {
 	        WriteAsync(buf, off, len).Wait();
 	    }
