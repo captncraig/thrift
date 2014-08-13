@@ -106,6 +106,7 @@
     <Compile Include="Protocol\TSet.cs" />
     <Compile Include="Protocol\TStruct.cs" />
     <Compile Include="Protocol\TType.cs" />
+    <Compile Include="Server\TAsyncServer.cs" />
     <Compile Include="Server\TThreadedServer.cs" />
     <Compile Include="Server\TServer.cs" />
     <Compile Include="Server\TServerEventHandler.cs" />

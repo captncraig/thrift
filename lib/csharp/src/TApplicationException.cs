@@ -46,7 +46,7 @@ namespace Thrift
 			this.type = type;
 		}
 
-	    public static TApplicationException ReadZZZ(TProtocol iprot)
+	    public static TApplicationException Read(TProtocol iprot)
 	    {
 	        return ReadAsync(iprot).Result;
 	    }

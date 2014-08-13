@@ -32,7 +32,7 @@ namespace Thrift
 		bool Process(TProtocol iprot, TProtocol oprot);
 	}
 
-    public interface TAsyncProcessor
+    public interface TAsyncProcessor : TProcessor
     {
         Task<bool> ProcessAsync(TProtocol iprot, TProtocol oprot);
     }

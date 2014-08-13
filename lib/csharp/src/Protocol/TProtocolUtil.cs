@@ -28,7 +28,7 @@ namespace Thrift.Protocol
 {
 	public static class TProtocolUtil
 	{
-	    public static void SkipZZZ(TProtocol prot, TType type)
+	    public static void Skip(TProtocol prot, TType type)
 	    {
 	        SkipAsync(prot, type).Wait();
 	    }
