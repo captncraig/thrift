@@ -26,6 +26,7 @@ using System.Net;
 using System.Threading;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -101,7 +102,7 @@ namespace Thrift.Transport
 			}
 		}
 
-		public override void Open()
+		public override async Task OpenAsync()
 		{
 		}
 

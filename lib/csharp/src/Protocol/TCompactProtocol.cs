@@ -480,22 +480,22 @@ namespace Thrift.Protocol
         /**
    * Read a message header. 
    */
-        public override TMessage ReadMessageBegin()
+        public override async Task<TMessage> ReadMessageBeginAsync()
         {
-            byte protocolId = (byte)ReadByte();
+            byte protocolId = (byte)await ReadByteAsync();
             if (protocolId != PROTOCOL_ID)
             {
                 throw new TProtocolException("Expected protocol id " + PROTOCOL_ID.ToString("X") + " but got " + protocolId.ToString("X"));
             }
-            byte versionAndType = (byte)ReadByte();
+            byte versionAndType = (byte)await ReadByteAsync();
             byte version = (byte)(versionAndType & VERSION_MASK);
             if (version != VERSION)
             {
                 throw new TProtocolException("Expected version " + VERSION + " but got " + version);
             }
             byte type = (byte)((versionAndType >> TYPE_SHIFT_AMOUNT) & 0x03);
-            int seqid = (int)ReadVarint32();
-            String messageName = ReadString();
+            int seqid = (int)await ReadVarint32Async();
+            String messageName = await ReadStringAsync();
             return new TMessage(messageName, (TMessageType)type, seqid);
         }
 
@@ -503,7 +503,7 @@ namespace Thrift.Protocol
          * Read a struct begin. There's nothing on the wire for this, but it is our
          * opportunity to push a new struct begin marker onto the field stack.
          */
-        public override TStruct ReadStructBegin()
+        public override async Task<TStruct> ReadStructBeginAsync()
         {
             lastField_.Push(lastFieldId_);
             lastFieldId_ = 0;
@@ -514,7 +514,7 @@ namespace Thrift.Protocol
          * Doesn't actually consume any wire data, just removes the last field for 
          * this struct from the field stack.
          */
-        public override void ReadStructEnd()
+        public override async Task ReadStructEndAsync()
         {
             // consume the last field we Read off the wire.
             lastFieldId_ = lastField_.Pop();
@@ -523,9 +523,9 @@ namespace Thrift.Protocol
         /**
          * Read a field header off the wire. 
          */
-        public override TField ReadFieldBegin()
+        public override async Task<TField> ReadFieldBeginAsync()
         {
-            byte type = (byte)ReadByte();
+            byte type = (byte)await ReadByteAsync();
 
             // if it's a stop, then we can return immediately, as the struct is over.
             if (type == Types.STOP)
@@ -540,7 +540,7 @@ namespace Thrift.Protocol
             if (modifier == 0)
             {
                 // not a delta. look ahead for the zigzag varint field id.
-                fieldId = ReadI16();
+                fieldId = await ReadI16Async();
             }
             else
             {
@@ -567,10 +567,10 @@ namespace Thrift.Protocol
          * and value type. This means that 0-length maps will yield TMaps without the
          * "correct" types.
          */
-        public override TMap ReadMapBegin()
+        public override async Task<TMap> ReadMapBeginAsync()
         {
-            int size = (int)ReadVarint32();
-            byte keyAndValueType = size == 0 ? (byte)0 : (byte)ReadByte();
+            int size = (int)await ReadVarint32Async();
+            byte keyAndValueType = size == 0 ? (byte)0 : (byte)await ReadByteAsync();
             return new TMap(getTType((byte)(keyAndValueType >> 4)), getTType((byte)(keyAndValueType & 0xf)), size);
         }
 
@@ -580,13 +580,13 @@ namespace Thrift.Protocol
          * of the element type header will be 0xF, and a varint will follow with the
          * true size.
          */
-        public override TList ReadListBegin()
+        public override async Task<TList> ReadListBeginAsync()
         {
-            byte size_and_type = (byte)ReadByte();
+            byte size_and_type = (byte)await ReadByteAsync();
             int size = (size_and_type >> 4) & 0x0f;
             if (size == 15)
             {
-                size = (int)ReadVarint32();
+                size = (int)await ReadVarint32Async();
             }
             TType type = getTType(size_and_type);
             return new TList(type, size);
@@ -598,9 +598,9 @@ namespace Thrift.Protocol
          * of the element type header will be 0xF, and a varint will follow with the
          * true size.
          */
-        public override TSet ReadSetBegin()
+        public override async Task<TSet> ReadSetBeginAsync()
         {
-            return new TSet(ReadListBegin());
+            return new TSet(await ReadListBeginAsync());
         }
 
         /**
@@ -608,7 +608,7 @@ namespace Thrift.Protocol
          * already have been Read during ReadFieldBegin, so we'll just consume the
          * pre-stored value. Otherwise, Read a byte.
          */
-        public override Boolean ReadBool()
+        public override async Task<bool> ReadBoolAsync()
         {
             if (boolValue_ != null)
             {
@@ -616,14 +616,14 @@ namespace Thrift.Protocol
                 boolValue_ = null;
                 return result;
             }
-            return ReadByte() == Types.BOOLEAN_TRUE;
+            return await ReadByteAsync() == Types.BOOLEAN_TRUE;
         }
 
         byte[] byteRawBuf = new byte[1];
         /**
          * Read a single byte off the wire. Nothing interesting here.
          */
-        public override sbyte ReadByte()
+        public override async Task<sbyte> ReadByteAsync()
         {
             trans.ReadAll(byteRawBuf, 0, 1);
             return (sbyte)byteRawBuf[0];
@@ -632,31 +632,31 @@ namespace Thrift.Protocol
         /**
          * Read an i16 from the wire as a zigzag varint.
          */
-        public override short ReadI16()
+        public override async Task<short> ReadI16Async()
         {
-            return (short)zigzagToInt(ReadVarint32());
+            return (short)zigzagToInt(await ReadVarint32Async());
         }
 
         /**
          * Read an i32 from the wire as a zigzag varint.
          */
-        public override int ReadI32()
+        public override async Task<int> ReadI32Async()
         {
-            return zigzagToInt(ReadVarint32());
+            return zigzagToInt(await ReadVarint32Async());
         }
 
         /**
          * Read an i64 from the wire as a zigzag varint.
          */
-        public override long ReadI64()
+        public override async Task<long> ReadI64Async()
         {
-            return zigzagToLong(ReadVarint64());
+            return zigzagToLong(await ReadVarint64());
         }
 
         /**
          * No magic here - just Read a double off the wire.
          */
-        public override double ReadDouble()
+        public override async Task<double> ReadDoubleAsync()
         {
             byte[] longBits = new byte[8];
             trans.ReadAll(longBits, 0, 8);
@@ -666,9 +666,9 @@ namespace Thrift.Protocol
         /**
          * Reads a byte[] (via ReadBinary), and then UTF-8 decodes it.
          */
-        public override String ReadString()
+        public override async Task<string> ReadStringAsync()
         {
-            int length = (int)ReadVarint32();
+            int length = (int)await ReadVarint32Async();
 
             if (length == 0)
             {
@@ -681,9 +681,9 @@ namespace Thrift.Protocol
         /**
          * Read a byte[] from the wire. 
          */
-        public override byte[] ReadBinary()
+        public override async Task<byte[]> ReadBinaryAsync()
         {
-            int length = (int)ReadVarint32();
+            int length = (int)await ReadVarint32Async();
             if (length == 0) return new byte[0];
 
             byte[] buf = new byte[length];
@@ -707,11 +707,11 @@ namespace Thrift.Protocol
         // These methods are here for the struct to call, but don't have any wire 
         // encoding.
         //
-        public override void ReadMessageEnd() { }
-        public override void ReadFieldEnd() { }
-        public override void ReadMapEnd() { }
-        public override void ReadListEnd() { }
-        public override void ReadSetEnd() { }
+        public override async Task ReadMessageEndAsync() { }
+        public override async Task ReadFieldEndAsync() { }
+        public override async Task ReadMapEndAsync() { }
+        public override async Task ReadListEndAsync() { }
+        public override async Task ReadSetEndAsync() { }
 
         //
         // Internal Reading methods
@@ -721,13 +721,13 @@ namespace Thrift.Protocol
          * Read an i32 from the wire as a varint. The MSB of each byte is set
          * if there is another byte to follow. This can Read up to 5 bytes.
          */
-        private uint ReadVarint32()
+        private async Task<uint> ReadVarint32Async()
         {
             uint result = 0;
             int shift = 0;
             while (true)
             {
-                byte b = (byte)ReadByte();
+                byte b = (byte)await ReadByteAsync();
                 result |= (uint)(b & 0x7f) << shift;
                 if ((b & 0x80) != 0x80) break;
                 shift += 7;
@@ -739,13 +739,13 @@ namespace Thrift.Protocol
          * Read an i64 from the wire as a proper varint. The MSB of each byte is set 
          * if there is another byte to follow. This can Read up to 10 bytes.
          */
-        private ulong ReadVarint64()
+        private async Task<ulong> ReadVarint64()
         {
             int shift = 0;
             ulong result = 0;
             while (true)
             {
-                byte b = (byte)ReadByte();
+                byte b = (byte)await ReadByteAsync();
                 result |= (ulong)(b & 0x7f) << shift;
                 if ((b & 0x80) != 0x80) break;
                 shift += 7;

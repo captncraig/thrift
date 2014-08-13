@@ -22,6 +22,7 @@
  */
 
 using System;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -37,7 +38,11 @@ namespace Thrift.Transport
 			return IsOpen;
 		}
 
-		public abstract void Open();
+	    public void OpenZZZ()
+	    {
+	        OpenAsync().Wait();
+	    }
+		public abstract Task OpenAsync();
 
 		public abstract void Close();
 

@@ -22,6 +22,7 @@
  */
 
 using System.IO.Pipes;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -48,14 +49,14 @@ namespace Thrift.Transport
 			get { return client != null && client.IsConnected; }
 		}
 
-		public override void Open()
+		public override async Task OpenAsync()
 		{
 			if (IsOpen)
 			{
 				throw new TTransportException(TTransportException.ExceptionType.AlreadyOpen);
 			}
 			client = new NamedPipeClientStream(ServerName, PipeName, PipeDirection.InOut, PipeOptions.None);
-			client.Connect();
+            client.Connect();
 		}
 
 		public override void Close()

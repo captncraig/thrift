@@ -22,75 +22,81 @@
  */
 
 using System;
+using System.Threading.Tasks;
 
 namespace Thrift.Protocol
 {
 	public static class TProtocolUtil
 	{
-		public static void Skip(TProtocol prot, TType type)
+	    public static void SkipZZZ(TProtocol prot, TType type)
+	    {
+	        SkipAsync(prot, type).Wait();
+	    }
+
+		public static async Task SkipAsync(TProtocol prot, TType type)
 		{
 			switch (type)
 			{
 				case TType.Bool:
-					prot.ReadBool();
+					await prot.ReadBoolAsync();
 					break;
 				case TType.Byte:
-					prot.ReadByte();
+					await prot.ReadByteAsync();
 					break;
 				case TType.I16:
-					prot.ReadI16();
+                    await prot.ReadI16Async();
 					break;
 				case TType.I32:
-					prot.ReadI32();
+                    await prot.ReadI32Async();
 					break;
 				case TType.I64:
-					prot.ReadI64();
+                    await prot.ReadI64Async();
 					break;
 				case TType.Double:
-					prot.ReadDouble();
+                    await prot.ReadDoubleAsync();
 					break;
 				case TType.String:
 					// Don't try to decode the string, just skip it.
-					prot.ReadBinary();
+                    await prot.ReadBinaryAsync();
 					break;
 				case TType.Struct:
-					prot.ReadStructBegin();
+                    await prot.ReadStructBeginAsync();
 					while (true)
 					{
-						TField field = prot.ReadFieldBegin();
+                        TField field = await prot.ReadFieldBeginAsync();
 						if (field.Type == TType.Stop)
 						{
 							break;
 						}
-						Skip(prot, field.Type);
-						prot.ReadFieldEnd();
+                        await SkipAsync(prot, field.Type);
+                        await prot.ReadFieldEndAsync();
 					}
-					prot.ReadStructEnd();
+                    await prot.ReadStructEndAsync();
 					break;
 				case TType.Map:
-					TMap map = prot.ReadMapBegin();
+                    TMap map = await prot.ReadMapBeginAsync();
 					for (int i = 0; i < map.Count; i++)
 					{
-						Skip(prot, map.KeyType);
-						Skip(prot, map.ValueType);
+                        await SkipAsync(prot, map.KeyType);
+                        await SkipAsync(prot, map.ValueType);
 					}
-					prot.ReadMapEnd();
+                    await prot.ReadMapEndAsync();
 					break;
 				case TType.Set:
-					TSet set = prot.ReadSetBegin();
+                    TSet set = await prot.ReadSetBeginAsync();
 					for (int i = 0; i < set.Count; i++)
 					{
-						Skip(prot, set.ElementType);
+                        await SkipAsync(prot, set.ElementType);
 					}
-					prot.ReadSetEnd();
+                    await prot.ReadSetEndAsync();
 					break;
 				case TType.List:
-					TList list = prot.ReadListBegin();
+                    TList list = await prot.ReadListBeginAsync();
 					for (int i = 0; i < list.Count; i++)
 					{
-						Skip(prot, list.ElementType);
+                        await SkipAsync(prot, list.ElementType);
 					}
-					prot.ReadListEnd();
+                    await prot.ReadListEndAsync();
 					break;
 			}
 		}

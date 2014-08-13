@@ -159,104 +159,104 @@ namespace Thrift.Protocol
             return WrappedProtocol.WriteBinaryAsync(bytes);
         }
 
-        public override TMessage ReadMessageBegin()
+        public override Task<TMessage> ReadMessageBeginAsync()
         {
-            return WrappedProtocol.ReadMessageBegin();
+            return WrappedProtocol.ReadMessageBeginAsync();
         }
 
-        public override void ReadMessageEnd()
+        public override Task ReadMessageEndAsync()
         {
-            WrappedProtocol.ReadMessageEnd();
+            return WrappedProtocol.ReadMessageEndAsync();
         }
 
-        public override TStruct ReadStructBegin()
+        public override Task<TStruct> ReadStructBeginAsync()
         {
-            return WrappedProtocol.ReadStructBegin();
+            return WrappedProtocol.ReadStructBeginAsync();
         }
 
-        public override void ReadStructEnd()
+        public override Task ReadStructEndAsync()
         {
-            WrappedProtocol.ReadStructEnd();
+            return WrappedProtocol.ReadStructEndAsync();
         }
 
-        public override TField ReadFieldBegin()
+        public override Task<TField> ReadFieldBeginAsync()
         {
-            return WrappedProtocol.ReadFieldBegin();
+            return WrappedProtocol.ReadFieldBeginAsync();
         }
 
-        public override void ReadFieldEnd()
+        public override Task ReadFieldEndAsync()
         {
-            WrappedProtocol.ReadFieldEnd();
+            return WrappedProtocol.ReadFieldEndAsync();
         }
 
-        public override TMap ReadMapBegin()
+        public override Task<TMap> ReadMapBeginAsync()
         {
-            return WrappedProtocol.ReadMapBegin();
+            return WrappedProtocol.ReadMapBeginAsync();
         }
 
-        public override void ReadMapEnd()
+        public override Task ReadMapEndAsync()
         {
-            WrappedProtocol.ReadMapEnd();
+            return WrappedProtocol.ReadMapEndAsync();
         }
 
-        public override TList ReadListBegin()
+        public override Task<TList> ReadListBeginAsync()
         {
-            return WrappedProtocol.ReadListBegin();
+            return WrappedProtocol.ReadListBeginAsync();
         }
 
-        public override void ReadListEnd()
+        public override Task ReadListEndAsync()
         {
-            WrappedProtocol.ReadListEnd();
+            return WrappedProtocol.ReadListEndAsync();
         }
 
-        public override TSet ReadSetBegin()
+        public override Task<TSet> ReadSetBeginAsync()
         {
-            return WrappedProtocol.ReadSetBegin();
+            return WrappedProtocol.ReadSetBeginAsync();
         }
 
-        public override void ReadSetEnd()
+        public override Task ReadSetEndAsync()
         {
-            WrappedProtocol.ReadSetEnd();
+            return WrappedProtocol.ReadSetEndAsync();
         }
 
-        public override bool ReadBool()
+        public override Task<bool> ReadBoolAsync()
         {
-            return WrappedProtocol.ReadBool();
+            return WrappedProtocol.ReadBoolAsync();
         }
 
-        public override sbyte ReadByte()
+        public override Task<sbyte> ReadByteAsync()
         {
-            return WrappedProtocol.ReadByte();
+            return WrappedProtocol.ReadByteAsync();
         }
 
-        public override short ReadI16()
+        public override Task<short> ReadI16Async()
         {
-            return WrappedProtocol.ReadI16();
+            return WrappedProtocol.ReadI16Async();
         }
 
-        public override int ReadI32()
+        public override Task<int> ReadI32Async()
         {
-            return WrappedProtocol.ReadI32();
+            return WrappedProtocol.ReadI32Async();
         }
 
-        public override long ReadI64()
+        public override Task<long> ReadI64Async()
         {
-            return WrappedProtocol.ReadI64();
+            return WrappedProtocol.ReadI64Async();
         }
 
-        public override double ReadDouble()
+        public override Task<double> ReadDoubleAsync()
         {
-            return WrappedProtocol.ReadDouble();
+            return WrappedProtocol.ReadDoubleAsync();
         }
 
-        public override String ReadString()
+        public override Task<String> ReadStringAsync()
         {
-            return WrappedProtocol.ReadString();
+            return WrappedProtocol.ReadStringAsync();
         }
 
-        public override byte[] ReadBinary()
+        public override Task<byte[]> ReadBinaryAsync()
         {
-            return WrappedProtocol.ReadBinary();
+            return WrappedProtocol.ReadBinaryAsync();
         }
     }
 

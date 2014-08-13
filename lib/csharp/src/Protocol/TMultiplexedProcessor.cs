@@ -23,6 +23,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Thrift.Transport;
 using System.Collections.Generic;
 using System.IO;
@@ -49,6 +50,7 @@ namespace Thrift.Protocol
      *     TSimpleServer server = new TSimpleServer(processor, t);
      *
      *     server.serve();
+     *     
      */
     public class TMultiplexedProcessor : TProcessor 
     {
@@ -76,9 +78,9 @@ namespace Thrift.Protocol
 
             TMessage newMessage = new TMessage(message.Name, TMessageType.Exception, message.SeqID);
 
-            oprot.WriteMessageBeginZZZ(newMessage);
+            oprot.WriteMessageBegin(newMessage);
             appex.Write( oprot);
-            oprot.WriteMessageEndZZZ();
+            oprot.WriteMessageEnd();
             oprot.Transport.Flush();
         }
             
@@ -170,9 +172,9 @@ namespace Thrift.Protocol
                 this.MsgBegin = messageBegin;
             }
 
-            public override TMessage ReadMessageBegin()  
+            public override Task<TMessage> ReadMessageBeginAsync()  
             {
-                return MsgBegin;
+                return Task.FromResult(MsgBegin);
             }
         }
 

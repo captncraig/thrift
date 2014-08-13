@@ -18,6 +18,7 @@
  */
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 { 
@@ -48,9 +49,9 @@ namespace Thrift.Transport
 			this.transport = transport;
 		}
 
-		public override void Open()
+		public override Task OpenAsync()
 		{
-			transport.Open();
+			return transport.OpenAsync();
 		}
 
 		public override bool IsOpen

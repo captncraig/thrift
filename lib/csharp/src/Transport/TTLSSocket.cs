@@ -22,6 +22,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -219,7 +220,7 @@ namespace Thrift.Transport
 		/// <summary>
 		/// Connects to the host and starts the routine, which sets up the TLS
 		/// </summary>
-		public override void Open()
+		public override async Task OpenAsync()
 		{
 			if (IsOpen)
 			{
@@ -241,7 +242,7 @@ namespace Thrift.Transport
 				InitSocket();
 			}
 
-			client.Connect(host, port);
+			client.ConnectAsync(host, port);
 
 			setupTLS();
 		}

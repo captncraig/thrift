@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO.Pipes;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -100,8 +101,8 @@ namespace Thrift.Transport
 				get { return server != null && server.IsConnected; }
 			}
 
-			public override void Open()
-			{
+            public override async Task OpenAsync()
+            {
 			}
 
 			public override void Close()

@@ -28,22 +28,22 @@ using Thrift.Transport;
 
 namespace Thrift.Protocol
 {
-	public abstract class TProtocol : IDisposable
-	{
-		protected TTransport trans;
+    public abstract class TProtocol : IDisposable
+    {
+        protected TTransport trans;
 
         //For task based methods that do nothing, this is a convient task to return.
         protected readonly Task NoopTask = Task.FromResult(0);
 
-		protected TProtocol(TTransport trans)
-		{
-			this.trans = trans;
-		}
+        protected TProtocol(TTransport trans)
+        {
+            this.trans = trans;
+        }
 
-		public TTransport Transport
-		{
-			get { return trans; }
-		}
+        public TTransport Transport
+        {
+            get { return trans; }
+        }
 
         #region " IDisposable Support "
         private bool _IsDisposed;
@@ -70,7 +70,7 @@ namespace Thrift.Protocol
 
         public abstract Task WriteMessageBeginAsync(TMessage message);
         public abstract Task WriteMessageEndAsync();
-	    public abstract Task WriteStructBeginAsync(TStruct struc);
+        public abstract Task WriteStructBeginAsync(TStruct struc);
         public abstract Task WriteStructEndAsync();
         public abstract Task WriteFieldBeginAsync(TField field);
         public abstract Task WriteFieldEndAsync();
@@ -93,113 +93,197 @@ namespace Thrift.Protocol
         }
         public abstract Task WriteBinaryAsync(byte[] b);
 
-        public void WriteMessageBeginZZZ(TMessage message)
+        public abstract Task<TMessage> ReadMessageBeginAsync();
+        public abstract Task ReadMessageEndAsync();
+        public abstract Task<TStruct> ReadStructBeginAsync();
+        public abstract Task ReadStructEndAsync();
+        public abstract Task<TField> ReadFieldBeginAsync();
+        public abstract Task ReadFieldEndAsync();
+        public abstract Task<TMap> ReadMapBeginAsync();
+        public abstract Task ReadMapEndAsync();
+        public abstract Task<TList> ReadListBeginAsync();
+        public abstract Task ReadListEndAsync();
+        public abstract Task<TSet> ReadSetBeginAsync();
+        public abstract Task ReadSetEndAsync();
+        public abstract Task<sbyte> ReadByteAsync();
+        public abstract Task<bool> ReadBoolAsync();
+        public abstract Task<short> ReadI16Async();
+        public abstract Task<int> ReadI32Async();
+        public abstract Task<long> ReadI64Async();
+        public abstract Task<double> ReadDoubleAsync();
+        public abstract Task<byte[]> ReadBinaryAsync();
+        public virtual async Task<string> ReadStringAsync()
+        {
+            var buf = await ReadBinaryAsync();
+            return Encoding.UTF8.GetString(buf, 0, buf.Length);
+        }
+
+        // Synchronous methods preserved as callthroughs to async methods.
+
+        public void WriteMessageBegin(TMessage message)
         {
             WriteMessageBeginAsync(message).Wait();
         }
-        public void WriteMessageEndZZZ()
+        public void WriteMessageEnd()
         {
             WriteMessageEndAsync().Wait();
         }
-        public void WriteStructBeginZZZ(TStruct struc)
+        public void WriteStructBegin(TStruct struc)
         {
             WriteStructBeginAsync(struc).Wait();
         }
-	    public void WriteStructEndZZZ()
-	    {
-	        WriteStructEndAsync().Wait();
-	    }
-        public void WriteFieldBeginZZZ(TField field)
+        public void WriteStructEnd()
+        {
+            WriteStructEndAsync().Wait();
+        }
+        public void WriteFieldBegin(TField field)
         {
             WriteFieldBeginAsync(field).Wait();
         }
-        public void WriteFieldEndZZZ()
+        public void WriteFieldEnd()
         {
             WriteFieldEndAsync().Wait();
         }
-        public void WriteFieldStopZZZ()
+        public void WriteFieldStop()
         {
             WriteFieldStopAsync().Wait();
         }
-        public void WriteMapBeginZZZ(TMap map)
+        public void WriteMapBegin(TMap map)
         {
             WriteMapBeginAsync(map).Wait();
         }
-        public void WriteMapEndZZZ()
+        public void WriteMapEnd()
         {
             WriteMapEndAsync().Wait();
         }
-        public void WriteListBeginZZZ(TList list)
+        public void WriteListBegin(TList list)
         {
             WriteListBeginAsync(list).Wait();
         }
-        public void WriteListEndZZZ()
+        public void WriteListEnd()
         {
             WriteListEndAsync().Wait();
         }
-        public void WriteSetBeginZZZ(TSet set)
+        public void WriteSetBegin(TSet set)
         {
             WriteSetBeginAsync(set).Wait();
         }
-        public void WriteSetEndZZZ()
+        public void WriteSetEnd()
         {
             WriteSetEndAsync().Wait();
         }
-        public void WriteBoolZZZ(bool b)
+        public void WriteBool(bool b)
         {
             WriteBoolAsync(b).Wait();
         }
-        public void WriteByteZZZ(sbyte b)
+        public void WriteByte(sbyte b)
         {
             WriteByteAsync(b).Wait();
         }
-        public void WriteI16ZZZ(short i16)
+        public void WriteI16(short i16)
         {
             WriteI16Async(i16).Wait();
         }
-        public void WriteI32ZZZ(int i32)
+        public void WriteI32(int i32)
         {
             WriteI32Async(i32).Wait();
         }
-        public void WriteI64ZZZ(long i64)
+        public void WriteI64(long i64)
         {
             WriteI64Async(i64).Wait();
         }
-        public void WriteDoubleZZZ(double d)
+        public void WriteDouble(double d)
         {
             WriteDoubleAsync(d).Wait();
         }
-		public void WriteStringZZZ(string s)
-		{
-		    WriteStringAsync(s).Wait();
-		}
-	    public void WriteBinaryZZZ(byte[] b)
-	    {
-	        WriteBinaryAsync(b).Wait();
-	    }
-
-		public abstract TMessage ReadMessageBegin();
-		public abstract void ReadMessageEnd();
-		public abstract TStruct ReadStructBegin();
-		public abstract void ReadStructEnd();
-		public abstract TField ReadFieldBegin();
-		public abstract void ReadFieldEnd();
-		public abstract TMap ReadMapBegin();
-		public abstract void ReadMapEnd();
-		public abstract TList ReadListBegin();
-		public abstract void ReadListEnd();
-		public abstract TSet ReadSetBegin();
-		public abstract void ReadSetEnd();
-		public abstract bool ReadBool();
-		public abstract sbyte ReadByte();
-		public abstract short ReadI16();
-		public abstract int ReadI32();
-		public abstract long ReadI64();
-		public abstract double ReadDouble();
-		public virtual string ReadString() {
-            var buf = ReadBinary();
-            return Encoding.UTF8.GetString(buf, 0, buf.Length);
+        public void WriteString(string s)
+        {
+            WriteStringAsync(s).Wait();
         }
-		public abstract byte[] ReadBinary();
-	}
+        public void WriteBinary(byte[] b)
+        {
+            WriteBinaryAsync(b).Wait();
+        }
+        public TMessage ReadMessageBegin()
+        {
+            return ReadMessageBeginAsync().Result;
+        }
+        public void ReadMessageEnd()
+        {
+            ReadMessageEndAsync().Wait();
+        }
+        public TStruct ReadStructBegin()
+        {
+            return ReadStructBeginAsync().Result;
+        }
+        public void ReadStructEnd()
+        {
+            ReadStructEndAsync().Wait();
+        }
+        public TField ReadFieldBegin()
+        {
+            return ReadFieldBeginAsync().Result;
+        }
+        public void ReadFieldEnd()
+        {
+            ReadFieldEndAsync().Wait();
+        }
+        public TMap ReadMapBegin()
+        {
+            return ReadMapBeginAsync().Result;
+        }
+        public void ReadMapEnd()
+        {
+            ReadMapEndAsync().Wait();
+        }
+        public TList ReadListBegin()
+        {
+            return ReadListBeginAsync().Result;
+        }
+        public void ReadListEnd()
+        {
+            ReadListEndAsync().Wait();
+        }
+        public TSet ReadSetBegin()
+        {
+            return ReadSetBeginAsync().Result;
+        }
+        public void ReadSetEnd()
+        {
+            ReadSetEndAsync().Wait();
+        }
+        public bool ReadBool()
+        {
+            return ReadBoolAsync().Result;
+        }
+        public sbyte ReadByte()
+        {
+            return ReadByteAsync().Result;
+        }
+        public short ReadI16()
+        {
+            return ReadI16Async().Result;
+        }
+        public int ReadI32()
+        {
+            return ReadI32Async().Result;
+        }
+        public long ReadI64()
+        {
+            return ReadI64Async().Result;
+        }
+        public double ReadDouble()
+        {
+            return ReadDoubleAsync().Result;
+        }
+        public string ReadString()
+        {
+            return ReadStringAsync().Result;
+        }
+        public byte[] ReadBinary()
+        {
+            return ReadBinaryAsync().Result;
+        }
+
+    }
 }

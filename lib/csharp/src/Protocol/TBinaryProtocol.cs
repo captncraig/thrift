@@ -223,10 +223,10 @@ namespace Thrift.Protocol
 
 		#region ReadMethods
 
-		public override TMessage ReadMessageBegin()
+		public override async Task<TMessage> ReadMessageBeginAsync()
 		{
 			TMessage message = new TMessage();
-			int size = ReadI32();
+            int size = await ReadI32Async();
 			if (size < 0)
 			{
 				uint version = (uint)size & VERSION_MASK;
@@ -235,8 +235,8 @@ namespace Thrift.Protocol
 					throw new TProtocolException(TProtocolException.BAD_VERSION, "Bad version in ReadMessageBegin: " + version);
 				}
 				message.Type = (TMessageType)(size & 0x000000ff);
-				message.Name = ReadString();
-				message.SeqID = ReadI32();
+                message.Name = await ReadStringAsync();
+                message.SeqID = await ReadI32Async();
 			}
 			else
 			{
@@ -245,103 +245,103 @@ namespace Thrift.Protocol
 					throw new TProtocolException(TProtocolException.BAD_VERSION, "Missing version in readMessageBegin, old client?");
 				}
 				message.Name = ReadStringBody(size);
-				message.Type = (TMessageType)ReadByte();
-				message.SeqID = ReadI32();
+                message.Type = (TMessageType)await ReadByteAsync();
+                message.SeqID = await ReadI32Async();
 			}
 			return message;
 		}
 
-		public override void ReadMessageEnd()
+        public override async Task ReadMessageEndAsync()
 		{
 		}
 
-		public override TStruct ReadStructBegin()
+        public override async Task<TStruct> ReadStructBeginAsync()
 		{
 			return new TStruct();
 		}
 
-		public override void ReadStructEnd()
+        public override async Task ReadStructEndAsync()
 		{
 		}
 
-		public override TField ReadFieldBegin()
+        public override async Task<TField> ReadFieldBeginAsync()
 		{
 			TField field = new TField();
-			field.Type = (TType)ReadByte();
+            field.Type = (TType)await ReadByteAsync();
 
 			if (field.Type != TType.Stop)
 			{
-				field.ID = ReadI16();
+                field.ID = await ReadI16Async();
 			}
 
 			return field;
 		}
 
-		public override void ReadFieldEnd()
+        public override async Task ReadFieldEndAsync()
 		{
 		}
 
-		public override TMap ReadMapBegin()
+        public override async Task<TMap> ReadMapBeginAsync()
 		{
 			TMap map = new TMap();
-			map.KeyType = (TType)ReadByte();
-			map.ValueType = (TType)ReadByte();
-			map.Count = ReadI32();
+			map.KeyType = (TType)await ReadByteAsync();
+            map.ValueType = (TType)await ReadByteAsync();
+            map.Count = await ReadI32Async();
 
 			return map;
 		}
 
-		public override void ReadMapEnd()
+        public override async Task ReadMapEndAsync()
 		{
 		}
 
-		public override TList ReadListBegin()
+        public override async Task<TList> ReadListBeginAsync()
 		{
 			TList list = new TList();
-			list.ElementType = (TType)ReadByte();
-			list.Count = ReadI32();
+            list.ElementType = (TType)await ReadByteAsync();
+            list.Count = await ReadI32Async();
 
 			return list;
 		}
 
-		public override void ReadListEnd()
+        public override async Task ReadListEndAsync()
 		{
 		}
 
-		public override TSet ReadSetBegin()
+        public override async Task<TSet> ReadSetBeginAsync()
 		{
 			TSet set = new TSet();
-			set.ElementType = (TType)ReadByte();
-			set.Count = ReadI32();
+            set.ElementType = (TType)await ReadByteAsync();
+            set.Count = await ReadI32Async();
 
 			return set;
 		}
 
-		public override void ReadSetEnd()
+        public override async Task ReadSetEndAsync()
 		{
 		}
 
-		public override bool ReadBool()
+        public override async Task<bool> ReadBoolAsync()
 		{
-			return ReadByte() == 1;
+            return await ReadByteAsync() == 1;
 		}
 
 		private byte[] bin = new byte[1];
-		public override sbyte ReadByte()
+        public override async Task<sbyte> ReadByteAsync()
 		{
 			ReadAll(bin, 0, 1);
 			return (sbyte)bin[0];
 		}
 
 		private byte[] i16in = new byte[2];
-		public override short ReadI16()
+        public override async Task<short> ReadI16Async()
 		{
 			ReadAll(i16in, 0, 2);
 			return (short)(((i16in[0] & 0xff) << 8) | ((i16in[1] & 0xff)));
 		}
 
 		private byte[] i32in = new byte[4];
-		public override int ReadI32()
+        public override async Task<int> ReadI32Async()
 		{
 			ReadAll(i32in, 0, 4);
 			return (int)(((i32in[0] & 0xff) << 24) | ((i32in[1] & 0xff) << 16) | ((i32in[2] & 0xff) << 8) | ((i32in[3] & 0xff)));
@@ -350,7 +350,7 @@ namespace Thrift.Protocol
 #pragma warning disable 675
 
         private byte[] i64in = new byte[8];
-		public override long ReadI64()
+        public override async Task<long> ReadI64Async()
 		{
 			ReadAll(i64in, 0, 8);
             unchecked {
@@ -368,10 +368,10 @@ namespace Thrift.Protocol
 
 #pragma warning restore 675
 
-        public override double ReadDouble()
+        public override async Task<double> ReadDoubleAsync()
 		{
 #if !SILVERLIGHT
-			return BitConverter.Int64BitsToDouble(ReadI64());
+            return BitConverter.Int64BitsToDouble(await ReadI64Async());
 #else
             var value = ReadI64();
             var bytes = BitConverter.GetBytes(value);
@@ -379,9 +379,9 @@ namespace Thrift.Protocol
 #endif
 		}
 
-		public override byte[] ReadBinary()
+        public override async Task<byte[]> ReadBinaryAsync()
 		{
-			int size = ReadI32();
+            int size = await ReadI32Async();
 			byte[] buf = new byte[size];
 			trans.ReadAll(buf, 0, size);
 			return buf;

@@ -22,6 +22,7 @@
  */
 
 using System;
+using System.Threading.Tasks;
 using Thrift.Protocol;
 
 namespace Thrift
@@ -45,17 +46,19 @@ namespace Thrift
 			this.type = type;
 		}
 
-		public static TApplicationException Read(TProtocol iprot)
+	    public static TApplicationException ReadZZZ(TProtocol iprot)
+	    {
+	        return ReadAsync(iprot).Result;
+	    }
+		public static async Task<TApplicationException> ReadAsync(TProtocol iprot)
 		{
-			TField field;
-
-			string message = null;
+		    string message = null;
 			ExceptionType type = ExceptionType.Unknown;
 
-			iprot.ReadStructBegin();
+			await iprot.ReadStructBeginAsync();
 			while (true)
 			{
-				field = iprot.ReadFieldBegin();
+				TField field = await iprot.ReadFieldBeginAsync();
 				if (field.Type == TType.Stop)
 				{
 					break;
@@ -66,61 +69,65 @@ namespace Thrift
 					case 1:
 						if (field.Type == TType.String)
 						{
-							message = iprot.ReadString();
+							message = await iprot.ReadStringAsync();
 						}
 						else
 						{
-							TProtocolUtil.Skip(iprot, field.Type);
+							await TProtocolUtil.SkipAsync(iprot, field.Type);
 						}
 						break;
 					case 2:
 						if (field.Type == TType.I32)
 						{
-							type = (ExceptionType)iprot.ReadI32();
+							type = (ExceptionType)await iprot.ReadI32Async();
 						}
 						else
 						{
-							TProtocolUtil.Skip(iprot, field.Type);
+							await TProtocolUtil.SkipAsync(iprot, field.Type);
 						}
 						break;
 					default:
-						TProtocolUtil.Skip(iprot, field.Type);
+                        await  TProtocolUtil.SkipAsync(iprot, field.Type);
 						break;
 				}
 
-				iprot.ReadFieldEnd();
+                await iprot.ReadFieldEndAsync();
 			}
 
-			iprot.ReadStructEnd();
+            await iprot.ReadStructEndAsync();
 
 			return new TApplicationException(type, message);
 		}
 
-		public void Write(TProtocol oprot)
+	    public void Write(TProtocol oprot)
+	    {
+	        WriteAsync(oprot).Wait();
+	    }
+		public async Task WriteAsync(TProtocol oprot)
 		{
 			TStruct struc = new TStruct("TApplicationException");
 			TField field = new TField();
 
-			oprot.WriteStructBeginZZZ(struc);
+            await oprot.WriteStructBeginAsync(struc);
 
 			if (!String.IsNullOrEmpty(Message))
 			{
 				field.Name = "message";
 				field.Type = TType.String;
 				field.ID = 1;
-				oprot.WriteFieldBeginZZZ(field);
-				oprot.WriteStringZZZ(Message);
-				oprot.WriteFieldEndZZZ();
+                await oprot.WriteFieldBeginAsync(field);
+                await oprot.WriteStringAsync(Message);
+                await oprot.WriteFieldEndAsync();
 			}
 
 			field.Name = "type";
 			field.Type = TType.I32;
 			field.ID = 2;
-			oprot.WriteFieldBeginZZZ(field);
-			oprot.WriteI32ZZZ((int)type);
-			oprot.WriteFieldEndZZZ();
-			oprot.WriteFieldStopZZZ();
-			oprot.WriteStructEndZZZ();
+            await oprot.WriteFieldBeginAsync(field);
+            await oprot.WriteI32Async((int)type);
+            await oprot.WriteFieldEndAsync();
+            await oprot.WriteFieldStopAsync();
+            await oprot.WriteStructEndAsync();
 		}
 
 		public enum ExceptionType

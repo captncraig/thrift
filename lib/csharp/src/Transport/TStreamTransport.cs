@@ -23,6 +23,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -56,8 +57,8 @@ namespace Thrift.Transport
 			get { return true; }
 		}
 
-		public override void Open()
-		{
+        public override async Task OpenAsync()
+        {
 		}
 
 		public override void Close()

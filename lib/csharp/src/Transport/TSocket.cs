@@ -23,6 +23,7 @@
 
 using System;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Thrift.Transport
 {
@@ -110,8 +111,8 @@ namespace Thrift.Transport
 			}
 		}
 
-		public override void Open()
-		{
+        public override async Task OpenAsync()
+        {
 			if (IsOpen)
 			{
 				throw new TTransportException(TTransportException.ExceptionType.AlreadyOpen, "Socket already connected");
@@ -132,82 +133,22 @@ namespace Thrift.Transport
 				InitSocket();
 			}
 
-			if( timeout == 0)			// no timeout -> infinite
-			{
-				client.Connect(host, port);
-			}
-			else                        // we have a timeout -> use it
-			{
-                ConnectHelper hlp = new ConnectHelper(client);
-                IAsyncResult asyncres = client.BeginConnect(host, port, new AsyncCallback(ConnectCallback), hlp);
-                bool bConnected = asyncres.AsyncWaitHandle.WaitOne(timeout) && client.Connected;
-                if (!bConnected)
-                {
-                    lock (hlp.Mutex)
-                    {
-                        if( hlp.CallbackDone)
-                        {
-                            asyncres.AsyncWaitHandle.Close();
-                            client.Close();
-                        }
-                        else
-                        {
-                            hlp.DoCleanup = true;
-                            client = null;
-                        }
-                    }
+			Task connect = client.ConnectAsync(host, port);
+            if (timeout != 0)
+            {
+                var timeoutTask = Task.Delay(timeout);
+                var firstDone = Task.WhenAny(connect, timeoutTask);
+                if(firstDone != connect)
                     throw new TTransportException(TTransportException.ExceptionType.TimedOut, "Connect timed out");
-                }
-			}
+            }
+            else
+            {
+                await connect;
+            }
 
 			inputStream = client.GetStream();
 			outputStream = client.GetStream();
 		}
-
-
-        static void ConnectCallback(IAsyncResult asyncres)
-        {
-            ConnectHelper hlp = asyncres.AsyncState as ConnectHelper;
-            lock (hlp.Mutex)
-            {
-                hlp.CallbackDone = true;
-                    
-                try
-                {
-                    if( hlp.Client.Client != null)
-                        hlp.Client.EndConnect(asyncres);
-                }
-                catch (Exception)
-                {
-                    // catch that away
-                }
-
-                if (hlp.DoCleanup) 
-                {
-                	try {
-                    	asyncres.AsyncWaitHandle.Close();
-                	} catch (Exception) {}
-                	
-                	try {
-                    	if (hlp.Client is IDisposable)
-	                        ((IDisposable)hlp.Client).Dispose();
-                	} catch (Exception) {}
-                    hlp.Client = null;
-                }
-            }
-        }
-
-        private class ConnectHelper
-        {
-            public object Mutex = new object();
-            public bool DoCleanup = false;
-            public bool CallbackDone = false;
-            public TcpClient Client;
-            public ConnectHelper(TcpClient client)
-            {
-                Client = client;
-            }
-        }
 
 		public override void Close()
 		{

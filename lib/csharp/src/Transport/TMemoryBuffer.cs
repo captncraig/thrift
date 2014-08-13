@@ -20,6 +20,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Threading.Tasks;
 using Thrift.Protocol;
 
 namespace Thrift.Transport {
@@ -35,7 +36,7 @@ namespace Thrift.Transport {
 			byteStream = new MemoryStream(buf);
 		}
 
-		public override void Open() {
+		public override async Task OpenAsync(){
 			/** do nothing **/
 		}
 

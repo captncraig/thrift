@@ -945,7 +945,7 @@ namespace Thrift.Protocol
 			PopContext();
 		}
 
-		public override TMessage ReadMessageBegin()
+        public override async Task<TMessage> ReadMessageBeginAsync()
 		{
 			TMessage message = new TMessage();
 			ReadJSONArrayStart();
@@ -962,23 +962,23 @@ namespace Thrift.Protocol
 			return message;
 		}
 
-		public override void ReadMessageEnd()
+        public override async Task ReadMessageEndAsync()
 		{
 			ReadJSONArrayEnd();
 		}
 
-		public override TStruct ReadStructBegin()
+        public override async Task<TStruct> ReadStructBeginAsync()
 		{
 			ReadJSONObjectStart();
 			return new TStruct();
 		}
 
-		public override void ReadStructEnd()
+        public override async Task ReadStructEndAsync()
 		{
 			ReadJSONObjectEnd();
 		}
 
-		public override TField ReadFieldBegin()
+        public override async Task<TField> ReadFieldBeginAsync()
 		{
 			TField field = new TField();
 			byte ch = reader.Peek();
@@ -995,12 +995,12 @@ namespace Thrift.Protocol
 			return field;
 		}
 
-		public override void ReadFieldEnd()
+        public override async Task ReadFieldEndAsync()
 		{
 			ReadJSONObjectEnd();
 		}
 
-		public override TMap ReadMapBegin()
+        public override async Task<TMap> ReadMapBeginAsync()
 		{
 			TMap map = new TMap();
 			ReadJSONArrayStart();
@@ -1011,13 +1011,13 @@ namespace Thrift.Protocol
 			return map;
 		}
 
-		public override void ReadMapEnd()
+        public override async Task ReadMapEndAsync()
 		{
 			ReadJSONObjectEnd();
 			ReadJSONArrayEnd();
 		}
 
-		public override TList ReadListBegin()
+        public override async Task<TList> ReadListBeginAsync()
 		{
 			TList list = new TList();
 			ReadJSONArrayStart();
@@ -1026,12 +1026,12 @@ namespace Thrift.Protocol
 			return list;
 		}
 
-		public override void ReadListEnd()
+        public override async Task ReadListEndAsync()
 		{
 			ReadJSONArrayEnd();
 		}
 
-		public override TSet ReadSetBegin()
+        public override async Task<TSet> ReadSetBeginAsync()
 		{
 			TSet set = new TSet();
 			ReadJSONArrayStart();
@@ -1040,48 +1040,48 @@ namespace Thrift.Protocol
 			return set;
 		}
 
-		public override void ReadSetEnd()
+        public override async Task ReadSetEndAsync()
 		{
 			ReadJSONArrayEnd();
 		}
 
-		public override bool ReadBool()
+        public override async Task<bool> ReadBoolAsync()
 		{
-			return (ReadJSONInteger() == 0 ? false : true);
+			return (ReadJSONInteger() != 0);
 		}
 
-		public override sbyte ReadByte()
+        public override async Task<sbyte> ReadByteAsync()
 		{
 			return (sbyte)ReadJSONInteger();
 		}
 
-		public override short ReadI16()
+        public override async Task<short> ReadI16Async()
 		{
 			return (short)ReadJSONInteger();
 		}
 
-		public override int ReadI32()
+        public override async Task<int> ReadI32Async()
 		{
 			return (int)ReadJSONInteger();
 		}
 
-		public override long ReadI64()
+        public override async Task<long> ReadI64Async()
 		{
 			return (long)ReadJSONInteger();
 		}
 
-		public override double ReadDouble()
+        public override async Task<double> ReadDoubleAsync()
 		{
 			return ReadJSONDouble();
 		}
 
-		public override String ReadString()
+        public override async Task<String> ReadStringAsync()
 		{
             var buf = ReadJSONString(false);
 			return utf8Encoding.GetString(buf,0,buf.Length);
 		}
 
-		public override byte[] ReadBinary()
+        public override async Task<byte[]> ReadBinaryAsync()
 		{
 			return ReadJSONBase64();
 		}
