@@ -38,7 +38,7 @@ namespace Thrift.Transport
 			return IsOpen;
 		}
 
-	    public void OpenZZZ()
+	    public void Open()
 	    {
 	        OpenAsync().Wait();
 	    }
@@ -46,16 +46,23 @@ namespace Thrift.Transport
 
 		public abstract void Close();
 
-		public abstract int Read(byte[] buf, int off, int len);
+	    public int Read(byte[] buf, int off, int len)
+	    {
+	        return ReadAsync(buf, off, len).Result;
+	    }
+		public abstract Task<int> ReadAsync(byte[] buf, int off, int len);
 
-		public int ReadAll(byte[] buf, int off, int len)
+	    public int ReadAll(byte[] buf, int off, int len)
+	    {
+	        return ReadAllAsync(buf, off, len).Result;
+	    }
+		public async Task<int> ReadAllAsync(byte[] buf, int off, int len)
 		{
 			int got = 0;
-			int ret = 0;
 
-			while (got < len)
+		    while (got < len)
 			{
-				ret = Read(buf, off + got, len - got);
+				int ret = await ReadAsync(buf, off + got, len - got);
 				if (ret <= 0)
 				{
 					throw new TTransportException(

@@ -244,7 +244,7 @@ namespace Thrift.Protocol
 				{
 					throw new TProtocolException(TProtocolException.BAD_VERSION, "Missing version in readMessageBegin, old client?");
 				}
-				message.Name = ReadStringBody(size);
+				message.Name = await ReadStringBodyAsync(size);
                 message.Type = (TMessageType)await ReadByteAsync();
                 message.SeqID = await ReadI32Async();
 			}
@@ -329,21 +329,21 @@ namespace Thrift.Protocol
 		private byte[] bin = new byte[1];
         public override async Task<sbyte> ReadByteAsync()
 		{
-			ReadAll(bin, 0, 1);
+			await ReadAllAsync(bin, 0, 1);
 			return (sbyte)bin[0];
 		}
 
 		private byte[] i16in = new byte[2];
         public override async Task<short> ReadI16Async()
 		{
-			ReadAll(i16in, 0, 2);
+            await ReadAllAsync(i16in, 0, 2);
 			return (short)(((i16in[0] & 0xff) << 8) | ((i16in[1] & 0xff)));
 		}
 
 		private byte[] i32in = new byte[4];
         public override async Task<int> ReadI32Async()
 		{
-			ReadAll(i32in, 0, 4);
+            await ReadAllAsync(i32in, 0, 4);
 			return (int)(((i32in[0] & 0xff) << 24) | ((i32in[1] & 0xff) << 16) | ((i32in[2] & 0xff) << 8) | ((i32in[3] & 0xff)));
 		}
 
@@ -352,7 +352,7 @@ namespace Thrift.Protocol
         private byte[] i64in = new byte[8];
         public override async Task<long> ReadI64Async()
 		{
-			ReadAll(i64in, 0, 8);
+            await ReadAllAsync(i64in, 0, 8);
             unchecked {
               return (long)(
                   ((long)(i64in[0] & 0xff) << 56) |
@@ -383,19 +383,19 @@ namespace Thrift.Protocol
 		{
             int size = await ReadI32Async();
 			byte[] buf = new byte[size];
-			trans.ReadAll(buf, 0, size);
+			await trans.ReadAllAsync(buf, 0, size);
 			return buf;
 		}
-		private  string ReadStringBody(int size)
+		private async Task<string> ReadStringBodyAsync(int size)
 		{
 			byte[] buf = new byte[size];
-			trans.ReadAll(buf, 0, size);
+			await trans.ReadAllAsync(buf, 0, size);
 			return Encoding.UTF8.GetString(buf, 0, buf.Length);
 		}
 
-		private int ReadAll(byte[] buf, int off, int len)
+		private Task<int> ReadAllAsync(byte[] buf, int off, int len)
 		{
-			return trans.ReadAll(buf, off, len);
+			return trans.ReadAllAsync(buf, off, len);
 		}
 
 		#endregion

@@ -44,8 +44,9 @@ namespace Thrift.Transport {
 			/** do nothing **/
 		}
 
-		public override int Read(byte[] buf, int off, int len) {
-			return byteStream.Read(buf, off, len);
+        public override Task<int> ReadAsync(byte[] buf, int off, int len)
+        {
+			return byteStream.ReadAsync(buf, off, len);
 		}
 
 		public override void Write(byte[] buf, int off, int len) {

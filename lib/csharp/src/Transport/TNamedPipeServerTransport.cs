@@ -110,13 +110,13 @@ namespace Thrift.Transport
 				if (server != null) server.Close();
 			}
 
-			public override int Read(byte[] buf, int off, int len)
+            public override Task<int> ReadAsync(byte[] buf, int off, int len)
 			{
 				if (server == null)
 				{
 					throw new TTransportException(TTransportException.ExceptionType.NotOpen);
 				}
-				return server.Read(buf, off, len);
+				return server.ReadAsync(buf, off, len);
 			}
 
 			public override void Write(byte[] buf, int off, int len)

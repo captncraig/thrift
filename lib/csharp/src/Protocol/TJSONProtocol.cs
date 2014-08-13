@@ -195,7 +195,7 @@ namespace Thrift.Protocol
 
 			public virtual void Write() { }
 
-			public virtual void Read() { }
+            public virtual async Task ReadAsync() { }
 
 			public virtual bool EscapeNumbers() { return false; }
 		}
@@ -211,7 +211,6 @@ namespace Thrift.Protocol
 			{
 
 			}
-
 			private bool first = true;
 
 			public override void Write()
@@ -226,7 +225,7 @@ namespace Thrift.Protocol
 				}
 			}
 
-			public override void Read()
+			public override async Task ReadAsync()
 			{
 				if (first)
 				{
@@ -234,7 +233,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.ReadJSONSyntaxChar(COMMA);
+					await proto.ReadJSONSyntaxCharAsync(COMMA);
 				}
 			}
 		}
@@ -270,7 +269,7 @@ namespace Thrift.Protocol
 				}
 			}
 
-			public override void Read()
+			public override async Task ReadAsync()
 			{
 				if (first)
 				{
@@ -279,7 +278,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.ReadJSONSyntaxChar(colon ? COLON : COMMA);
+					await proto.ReadJSONSyntaxCharAsync(colon ? COLON : COMMA);
 					colon = !colon;
 				}
 			}
@@ -309,7 +308,7 @@ namespace Thrift.Protocol
 			/// Return and consume the next byte to be Read, either taking it from the
 			/// data buffer if present or getting it from the transport otherwise.
 			///</summary>
-			public byte Read()
+			public async Task<byte> ReadAsync()
 			{
 				if (hasData)
 				{
@@ -317,7 +316,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.trans.ReadAll(data, 0, 1);
+                    await proto.trans.ReadAllAsync(data, 0, 1);
 				}
 				return data[0];
 			}
@@ -326,11 +325,11 @@ namespace Thrift.Protocol
 			/// Return the next byte to be Read without consuming, filling the data
 			/// buffer if it has not been filled alReady.
 			///</summary>
-			public byte Peek()
+			public async Task<byte> PeekAsync()
 			{
 				if (!hasData)
 				{
-					proto.trans.ReadAll(data, 0, 1);
+					await proto.trans.ReadAllAsync(data, 0, 1);
 				}
 				hasData = true;
 				return data[0];
@@ -384,9 +383,9 @@ namespace Thrift.Protocol
 		/// Marked protected to avoid synthetic accessor in JSONListContext.Read
 		/// and JSONPairContext.Read
 		///</summary>
-		protected void ReadJSONSyntaxChar(byte[] b)
+		protected async Task ReadJSONSyntaxCharAsync(byte[] b)
 		{
-			byte ch = reader.Read();
+			byte ch = await reader.ReadAsync();
 			if (ch != b[0])
 			{
 				throw new TProtocolException(TProtocolException.INVALID_DATA,
@@ -717,19 +716,19 @@ namespace Thrift.Protocol
 		/// Read in a JSON string, unescaping as appropriate.. Skip Reading from the
 		/// context if skipContext is true.
 		///</summary>
-		private byte[] ReadJSONString(bool skipContext)
+		private async Task<byte[]> ReadJSONStringAsync(bool skipContext)
 		{
 			MemoryStream buffer = new MemoryStream();
 
 
 			if (!skipContext)
 			{
-				context.Read();
+				await context.ReadAsync();
 			}
-			ReadJSONSyntaxChar(QUOTE);
+			await ReadJSONSyntaxCharAsync(QUOTE);
 			while (true)
 			{
-				byte ch = reader.Read();
+				byte ch = await reader.ReadAsync();
 				if (ch == QUOTE[0])
 				{
 					break;
@@ -743,7 +742,7 @@ namespace Thrift.Protocol
 				}
 
 				// distinguish between \uXXXX and \?
-				ch = reader.Read();
+				ch = await reader.ReadAsync();
 				if (ch != ESCSEQ[1])  // control chars like \n
 				{
 					int off = Array.IndexOf(ESCAPE_CHARS, (char)ch);
@@ -759,7 +758,7 @@ namespace Thrift.Protocol
 
 
 				// it's \uXXXX
-				trans.ReadAll(tempBuffer, 0, 4);
+				await trans.ReadAllAsync(tempBuffer, 0, 4);
 				var wch = (short)((HexVal((byte)tempBuffer[0]) << 12) +
 								  (HexVal((byte)tempBuffer[1]) << 8) +
 								  (HexVal((byte)tempBuffer[2]) << 4) + 
@@ -801,17 +800,17 @@ namespace Thrift.Protocol
 		/// Read in a sequence of characters that are all valid in JSON numbers. Does
 		/// not do a complete regex check to validate that this is actually a number.
 		////</summary>
-		private String ReadJSONNumericChars()
+		private async Task<String> ReadJSONNumericCharsAsync()
 		{
 			StringBuilder strbld = new StringBuilder();
 			while (true)
 			{
-				byte ch = reader.Peek();
+				byte ch = await reader.PeekAsync();
 				if (!IsJSONNumeric(ch))
 				{
 					break;
 				}
-				strbld.Append((char)reader.Read());
+				strbld.Append((char)await reader.ReadAsync());
 			}
 			return strbld.ToString();
 		}
@@ -819,17 +818,17 @@ namespace Thrift.Protocol
 		///<summary>
 		/// Read in a JSON number. If the context dictates, Read in enclosing quotes.
 		///</summary>
-		private long ReadJSONInteger()
+		private async Task<long> ReadJSONIntegerAsync()
 		{
-			context.Read();
+			await context.ReadAsync();
 			if (context.EscapeNumbers())
 			{
-				ReadJSONSyntaxChar(QUOTE);
+				await ReadJSONSyntaxCharAsync(QUOTE);
 			}
-			String str = ReadJSONNumericChars();
+			String str = await ReadJSONNumericCharsAsync();
 			if (context.EscapeNumbers())
 			{
-				ReadJSONSyntaxChar(QUOTE);
+				await ReadJSONSyntaxCharAsync(QUOTE);
 			}
 			try
 			{
@@ -846,12 +845,12 @@ namespace Thrift.Protocol
 		/// Read in a JSON double value. Throw if the value is not wrapped in quotes
 		/// when expected or if wrapped in quotes when not expected.
 		///</summary>
-		private double ReadJSONDouble()
+		private async Task<double> ReadJSONDoubleAsync()
 		{
-			context.Read();
-			if (reader.Peek() == QUOTE[0])
+			await context.ReadAsync();
+			if (await reader.PeekAsync() == QUOTE[0])
 			{
-				byte[] arr = ReadJSONString(true);
+				byte[] arr = await ReadJSONStringAsync(true);
 				double dub = Double.Parse(utf8Encoding.GetString(arr,0,arr.Length), CultureInfo.InvariantCulture);
 
 				if (!context.EscapeNumbers() && !Double.IsNaN(dub) &&
@@ -868,11 +867,11 @@ namespace Thrift.Protocol
 				if (context.EscapeNumbers())
 				{
 					// This will throw - we should have had a quote if escapeNum == true
-					ReadJSONSyntaxChar(QUOTE);
+					await ReadJSONSyntaxCharAsync(QUOTE);
 				}
 				try
 				{
-					return Double.Parse(ReadJSONNumericChars(), CultureInfo.InvariantCulture);
+					return Double.Parse(await ReadJSONNumericCharsAsync(), CultureInfo.InvariantCulture);
 				}
 				catch (FormatException)
 				{
@@ -885,9 +884,9 @@ namespace Thrift.Protocol
 		//<summary>
 		/// Read in a JSON string containing base-64 encoded data and decode it.
 		///</summary>
-		private byte[] ReadJSONBase64()
+		private async Task<byte[]> ReadJSONBase64Async()
 		{
-			byte[] b = ReadJSONString(false);
+			byte[] b = await ReadJSONStringAsync(false);
 			int len = b.Length;
 			int off = 0;
 			int size = 0;
@@ -919,171 +918,171 @@ namespace Thrift.Protocol
 			return result;
 		}
 
-		private void ReadJSONObjectStart()
+		private async Task ReadJSONObjectStartAsync()
 		{
-			context.Read();
-			ReadJSONSyntaxChar(LBRACE);
+			await context.ReadAsync();
+			await ReadJSONSyntaxCharAsync(LBRACE);
 			PushContext(new JSONPairContext(this));
 		}
 
-		private void ReadJSONObjectEnd()
+        private async Task ReadJSONObjectEndAsync()
 		{
-			ReadJSONSyntaxChar(RBRACE);
+			await ReadJSONSyntaxCharAsync(RBRACE);
 			PopContext();
 		}
 
-		private void ReadJSONArrayStart()
+        private async Task ReadJSONArrayStartAsync()
 		{
-			context.Read();
-			ReadJSONSyntaxChar(LBRACKET);
+			await context.ReadAsync();
+			await ReadJSONSyntaxCharAsync(LBRACKET);
 			PushContext(new JSONListContext(this));
 		}
 
-		private void ReadJSONArrayEnd()
+        private async Task ReadJSONArrayEndAsync()
 		{
-			ReadJSONSyntaxChar(RBRACKET);
+			await ReadJSONSyntaxCharAsync(RBRACKET);
 			PopContext();
 		}
 
         public override async Task<TMessage> ReadMessageBeginAsync()
 		{
 			TMessage message = new TMessage();
-			ReadJSONArrayStart();
-			if (ReadJSONInteger() != VERSION)
+			await ReadJSONArrayStartAsync();
+			if (await ReadJSONIntegerAsync() != VERSION)
 			{
 				throw new TProtocolException(TProtocolException.BAD_VERSION,
 											 "Message contained bad version.");
 			}
 
-            var buf = ReadJSONString(false);
+            var buf = await ReadJSONStringAsync(false);
 			message.Name = utf8Encoding.GetString(buf,0,buf.Length);
-			message.Type = (TMessageType)ReadJSONInteger();
-			message.SeqID = (int)ReadJSONInteger();
+			message.Type = (TMessageType)await ReadJSONIntegerAsync();
+            message.SeqID = (int)await ReadJSONIntegerAsync();
 			return message;
 		}
 
-        public override async Task ReadMessageEndAsync()
+        public override Task ReadMessageEndAsync()
 		{
-			ReadJSONArrayEnd();
+			return ReadJSONArrayEndAsync();
 		}
 
         public override async Task<TStruct> ReadStructBeginAsync()
 		{
-			ReadJSONObjectStart();
+			await ReadJSONObjectStartAsync();
 			return new TStruct();
 		}
 
-        public override async Task ReadStructEndAsync()
+        public override Task ReadStructEndAsync()
 		{
-			ReadJSONObjectEnd();
+			return ReadJSONObjectEndAsync();
 		}
 
         public override async Task<TField> ReadFieldBeginAsync()
 		{
 			TField field = new TField();
-			byte ch = reader.Peek();
+			byte ch = await reader.PeekAsync();
 			if (ch == RBRACE[0])
 			{
 				field.Type = TType.Stop;
 			}
 			else
 			{
-				field.ID = (short)ReadJSONInteger();
-				ReadJSONObjectStart();
-				field.Type = GetTypeIDForTypeName(ReadJSONString(false));
+				field.ID = (short)await ReadJSONIntegerAsync();
+				await ReadJSONObjectStartAsync();
+				field.Type = GetTypeIDForTypeName(await ReadJSONStringAsync(false));
 			}
 			return field;
 		}
 
-        public override async Task ReadFieldEndAsync()
+        public override Task ReadFieldEndAsync()
 		{
-			ReadJSONObjectEnd();
+			return ReadJSONObjectEndAsync();
 		}
 
         public override async Task<TMap> ReadMapBeginAsync()
 		{
 			TMap map = new TMap();
-			ReadJSONArrayStart();
-			map.KeyType = GetTypeIDForTypeName(ReadJSONString(false));
-			map.ValueType = GetTypeIDForTypeName(ReadJSONString(false));
-			map.Count = (int)ReadJSONInteger();
-			ReadJSONObjectStart();
+			await ReadJSONArrayStartAsync();
+            map.KeyType = GetTypeIDForTypeName(await ReadJSONStringAsync(false));
+            map.ValueType = GetTypeIDForTypeName(await ReadJSONStringAsync(false));
+            map.Count = (int)await ReadJSONIntegerAsync();
+            await ReadJSONObjectStartAsync();
 			return map;
 		}
 
         public override async Task ReadMapEndAsync()
 		{
-			ReadJSONObjectEnd();
-			ReadJSONArrayEnd();
+            await ReadJSONObjectEndAsync();
+            await ReadJSONArrayEndAsync();
 		}
 
         public override async Task<TList> ReadListBeginAsync()
 		{
 			TList list = new TList();
-			ReadJSONArrayStart();
-			list.ElementType = GetTypeIDForTypeName(ReadJSONString(false));
-			list.Count = (int)ReadJSONInteger();
+            await ReadJSONArrayStartAsync();
+            list.ElementType = GetTypeIDForTypeName(await ReadJSONStringAsync(false));
+            list.Count = (int)await ReadJSONIntegerAsync();
 			return list;
 		}
 
-        public override async Task ReadListEndAsync()
+        public override Task ReadListEndAsync()
 		{
-			ReadJSONArrayEnd();
+            return ReadJSONArrayEndAsync();
 		}
 
         public override async Task<TSet> ReadSetBeginAsync()
 		{
 			TSet set = new TSet();
-			ReadJSONArrayStart();
-			set.ElementType = GetTypeIDForTypeName(ReadJSONString(false));
-			set.Count = (int)ReadJSONInteger();
+            await ReadJSONArrayStartAsync();
+            set.ElementType = GetTypeIDForTypeName(await ReadJSONStringAsync(false));
+            set.Count = (int)await ReadJSONIntegerAsync();
 			return set;
 		}
 
-        public override async Task ReadSetEndAsync()
+        public override Task ReadSetEndAsync()
 		{
-			ReadJSONArrayEnd();
+            return ReadJSONArrayEndAsync();
 		}
 
         public override async Task<bool> ReadBoolAsync()
 		{
-			return (ReadJSONInteger() != 0);
+            return (await ReadJSONIntegerAsync() != 0);
 		}
 
         public override async Task<sbyte> ReadByteAsync()
 		{
-			return (sbyte)ReadJSONInteger();
+            return (sbyte)await ReadJSONIntegerAsync();
 		}
 
         public override async Task<short> ReadI16Async()
 		{
-			return (short)ReadJSONInteger();
+            return (short)await ReadJSONIntegerAsync();
 		}
 
         public override async Task<int> ReadI32Async()
 		{
-			return (int)ReadJSONInteger();
+            return (int)await ReadJSONIntegerAsync();
 		}
 
         public override async Task<long> ReadI64Async()
 		{
-			return (long)ReadJSONInteger();
+            return (long)await ReadJSONIntegerAsync();
 		}
 
-        public override async Task<double> ReadDoubleAsync()
+        public override Task<double> ReadDoubleAsync()
 		{
-			return ReadJSONDouble();
+            return ReadJSONDoubleAsync();
 		}
 
         public override async Task<String> ReadStringAsync()
 		{
-            var buf = ReadJSONString(false);
+            var buf = await ReadJSONStringAsync(false);
 			return utf8Encoding.GetString(buf,0,buf.Length);
 		}
 
-        public override async Task<byte[]> ReadBinaryAsync()
+        public override Task<byte[]> ReadBinaryAsync()
 		{
-			return ReadJSONBase64();
+            return ReadJSONBase64Async();
 		}
 
 	}

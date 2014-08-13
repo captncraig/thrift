@@ -75,14 +75,14 @@ namespace Thrift.Transport
 			}
 		}
 
-		public override int Read(byte[] buf, int off, int len)
+        public override Task<int> ReadAsync(byte[] buf, int off, int len)
 		{
 			if (inputStream == null)
 			{
 				throw new TTransportException(TTransportException.ExceptionType.NotOpen, "Cannot read from null inputstream");
 			}
 
-			return inputStream.Read(buf, off, len);
+			return inputStream.ReadAsync(buf, off, len);
 		}
 
 		public override void Write(byte[] buf, int off, int len)

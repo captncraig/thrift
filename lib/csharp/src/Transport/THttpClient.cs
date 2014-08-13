@@ -120,7 +120,7 @@ namespace Thrift.Transport
 			}
 		}
 
-		public override int Read(byte[] buf, int off, int len)
+        public override async Task<int> ReadAsync(byte[] buf, int off, int len)
 		{
 			if (inputStream == null)
 			{
@@ -129,7 +129,7 @@ namespace Thrift.Transport
 
 			try
 			{
-				int ret = inputStream.Read(buf, off, len);
+				int ret = await inputStream.ReadAsync(buf, off, len);
 
 				if (ret == -1)
 				{

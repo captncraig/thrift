@@ -625,7 +625,7 @@ namespace Thrift.Protocol
          */
         public override async Task<sbyte> ReadByteAsync()
         {
-            trans.ReadAll(byteRawBuf, 0, 1);
+            await trans.ReadAllAsync(byteRawBuf, 0, 1);
             return (sbyte)byteRawBuf[0];
         }
 
@@ -659,7 +659,7 @@ namespace Thrift.Protocol
         public override async Task<double> ReadDoubleAsync()
         {
             byte[] longBits = new byte[8];
-            trans.ReadAll(longBits, 0, 8);
+            await trans.ReadAllAsync(longBits, 0, 8);
             return BitConverter.Int64BitsToDouble(bytesToLong(longBits));
         }
 
@@ -675,7 +675,7 @@ namespace Thrift.Protocol
                 return "";
             }
 
-            return Encoding.UTF8.GetString(ReadBinary(length));
+            return Encoding.UTF8.GetString(await ReadBinaryAsync(length));
         }
 
         /**
@@ -687,19 +687,19 @@ namespace Thrift.Protocol
             if (length == 0) return new byte[0];
 
             byte[] buf = new byte[length];
-            trans.ReadAll(buf, 0, length);
+            await trans.ReadAllAsync(buf, 0, length);
             return buf;
         }
 
         /**
          * Read a byte[] of a known length from the wire. 
          */
-        private byte[] ReadBinary(int length)
+        private async Task<byte[]> ReadBinaryAsync(int length)
         {
             if (length == 0) return new byte[0];
 
             byte[] buf = new byte[length];
-            trans.ReadAll(buf, 0, length);
+            await trans.ReadAllAsync(buf, 0, length);
             return buf;
         }
 

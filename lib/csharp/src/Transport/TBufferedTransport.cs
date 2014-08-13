@@ -89,9 +89,9 @@ namespace Thrift.Transport
 			transport.Close();
 		}
 
-		public override int Read(byte[] buf, int off, int len)
+        public override Task<int> ReadAsync(byte[] buf, int off, int len)
 		{
-			return inputBuffer.Read(buf, off, len);
+			return inputBuffer.ReadAsync(buf, off, len);
 		}
 
 		public override void Write(byte[] buf, int off, int len)

@@ -67,11 +67,11 @@ namespace Thrift.Transport
 			transport.Close();
 		}
 
-		public override int Read(byte[] buf, int off, int len)
+        public override async Task<int> ReadAsync(byte[] buf, int off, int len)
 		{
 			if (readBuffer != null)
 			{
-				int got = readBuffer.Read(buf, off, len);
+				int got = await readBuffer.ReadAsync(buf, off, len);
 				if (got > 0)
 				{
 					return got;
@@ -79,19 +79,19 @@ namespace Thrift.Transport
 			}
 
 			// Read another frame of data
-			ReadFrame();
+			await ReadFrameAsync();
 
-			return readBuffer.Read(buf, off, len);
+			return await readBuffer.ReadAsync(buf, off, len);
 		}
 
-		private void ReadFrame()
+		private async Task ReadFrameAsync()
 		{
 			byte[] i32rd = new byte[header_size];
-			transport.ReadAll(i32rd, 0, header_size);
+			await transport.ReadAllAsync(i32rd, 0, header_size);
 			int size = DecodeFrameSize(i32rd);
 
 			byte[] buff = new byte[size];
-			transport.ReadAll(buff, 0, size);
+			await transport.ReadAllAsync(buff, 0, size);
 			readBuffer = new MemoryStream(buff);
 		}
 
