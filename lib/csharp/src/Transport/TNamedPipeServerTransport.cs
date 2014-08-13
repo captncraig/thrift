@@ -101,8 +101,9 @@ namespace Thrift.Transport
 				get { return server != null && server.IsConnected; }
 			}
 
-            public override async Task OpenAsync()
+            public override Task OpenAsync()
             {
+                return NoopTask;
 			}
 
 			public override void Close()

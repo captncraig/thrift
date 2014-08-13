@@ -251,17 +251,19 @@ namespace Thrift.Protocol
 			return message;
 		}
 
-        public override async Task ReadMessageEndAsync()
+        public override Task ReadMessageEndAsync()
+        {
+            return NoopTask;
+        }
+
+        public override Task<TStruct> ReadStructBeginAsync()
 		{
+			return Task.FromResult(new TStruct());
 		}
 
-        public override async Task<TStruct> ReadStructBeginAsync()
+        public override Task ReadStructEndAsync()
 		{
-			return new TStruct();
-		}
-
-        public override async Task ReadStructEndAsync()
-		{
+            return NoopTask;
 		}
 
         public override async Task<TField> ReadFieldBeginAsync()
@@ -277,8 +279,9 @@ namespace Thrift.Protocol
 			return field;
 		}
 
-        public override async Task ReadFieldEndAsync()
+        public override Task ReadFieldEndAsync()
 		{
+            return NoopTask;
 		}
 
         public override async Task<TMap> ReadMapBeginAsync()
@@ -291,8 +294,9 @@ namespace Thrift.Protocol
 			return map;
 		}
 
-        public override async Task ReadMapEndAsync()
+        public override Task ReadMapEndAsync()
 		{
+            return NoopTask;
 		}
 
         public override async Task<TList> ReadListBeginAsync()
@@ -304,8 +308,9 @@ namespace Thrift.Protocol
 			return list;
 		}
 
-        public override async Task ReadListEndAsync()
+        public override Task ReadListEndAsync()
 		{
+            return NoopTask;
 		}
 
         public override async Task<TSet> ReadSetBeginAsync()
@@ -317,8 +322,9 @@ namespace Thrift.Protocol
 			return set;
 		}
 
-        public override async Task ReadSetEndAsync()
+        public override Task ReadSetEndAsync()
 		{
+            return NoopTask;
 		}
 
         public override async Task<bool> ReadBoolAsync()

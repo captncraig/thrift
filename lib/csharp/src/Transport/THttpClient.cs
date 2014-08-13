@@ -102,8 +102,9 @@ namespace Thrift.Transport
 			}
 		}
 
-		public override async Task OpenAsync()
+		public override Task OpenAsync()
 		{
+            return NoopTask;
 		}
 
 		public override void Close()
@@ -251,6 +252,7 @@ namespace Thrift.Transport
             return connection;
 		}
 
+        [Obsolete("Use FlushAsync instead")]
         public override IAsyncResult BeginFlush(AsyncCallback callback, object state)
         {
             // Extract request and reset buffer
@@ -277,6 +279,7 @@ namespace Thrift.Transport
             }
         }
 
+        [Obsolete("Use FlushAsync instead")]
         public override void EndFlush(IAsyncResult asyncResult)
         {
             try

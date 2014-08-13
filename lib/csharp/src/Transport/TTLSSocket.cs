@@ -242,7 +242,7 @@ namespace Thrift.Transport
 				InitSocket();
 			}
 
-			client.ConnectAsync(host, port);
+			await client.ConnectAsync(host, port);
 
 			setupTLS();
 		}

@@ -49,7 +49,7 @@ namespace Thrift.Transport
 			get { return client != null && client.IsConnected; }
 		}
 
-		public override async Task OpenAsync()
+		public override Task OpenAsync()
 		{
 			if (IsOpen)
 			{
@@ -57,6 +57,7 @@ namespace Thrift.Transport
 			}
 			client = new NamedPipeClientStream(ServerName, PipeName, PipeDirection.InOut, PipeOptions.None);
             client.Connect();
+		    return NoopTask; 
 		}
 
 		public override void Close()

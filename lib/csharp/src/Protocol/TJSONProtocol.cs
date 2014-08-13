@@ -193,9 +193,9 @@ namespace Thrift.Protocol
 				this.proto = proto;
 			}
 
-			public virtual async Task WriteAsync() { }
+			public virtual Task WriteAsync() {return Task.FromResult(0);}
 
-            public virtual async Task ReadAsync() { }
+            public virtual Task ReadAsync() {return Task.FromResult(0);}
 
 			public virtual bool EscapeNumbers() { return false; }
 		}
@@ -626,7 +626,7 @@ namespace Thrift.Protocol
             return WriteJSONObjectEndAsync();
 		}
 
-        public override async Task WriteFieldStopAsync() { }
+        public override Task WriteFieldStopAsync() {return NoopTask; }
 
         public override async Task WriteMapBeginAsync(TMap map)
 		{

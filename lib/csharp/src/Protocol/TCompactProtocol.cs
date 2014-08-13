@@ -503,21 +503,22 @@ namespace Thrift.Protocol
          * Read a struct begin. There's nothing on the wire for this, but it is our
          * opportunity to push a new struct begin marker onto the field stack.
          */
-        public override async Task<TStruct> ReadStructBeginAsync()
+        public override Task<TStruct> ReadStructBeginAsync()
         {
             lastField_.Push(lastFieldId_);
             lastFieldId_ = 0;
-            return ANONYMOUS_STRUCT;
+            return Task.FromResult(ANONYMOUS_STRUCT);
         }
 
         /**
          * Doesn't actually consume any wire data, just removes the last field for 
          * this struct from the field stack.
          */
-        public override async Task ReadStructEndAsync()
+        public override Task ReadStructEndAsync()
         {
             // consume the last field we Read off the wire.
             lastFieldId_ = lastField_.Pop();
+            return NoopTask;
         }
 
         /**
@@ -707,11 +708,11 @@ namespace Thrift.Protocol
         // These methods are here for the struct to call, but don't have any wire 
         // encoding.
         //
-        public override async Task ReadMessageEndAsync() { }
-        public override async Task ReadFieldEndAsync() { }
-        public override async Task ReadMapEndAsync() { }
-        public override async Task ReadListEndAsync() { }
-        public override async Task ReadSetEndAsync() { }
+        public override Task ReadMessageEndAsync() { return NoopTask; }
+        public override Task ReadFieldEndAsync() { return NoopTask; }
+        public override Task ReadMapEndAsync() { return NoopTask; }
+        public override Task ReadListEndAsync() { return NoopTask; }
+        public override Task ReadSetEndAsync() { return NoopTask; }
 
         //
         // Internal Reading methods

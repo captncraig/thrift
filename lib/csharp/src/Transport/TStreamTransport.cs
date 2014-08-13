@@ -57,9 +57,10 @@ namespace Thrift.Transport
 			get { return true; }
 		}
 
-        public override async Task OpenAsync()
+        public override Task OpenAsync()
         {
-		}
+            return NoopTask;
+        }
 
 		public override void Close()
 		{

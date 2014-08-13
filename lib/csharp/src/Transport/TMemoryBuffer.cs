@@ -36,8 +36,9 @@ namespace Thrift.Transport {
 			byteStream = new MemoryStream(buf);
 		}
 
-		public override async Task OpenAsync(){
-			/** do nothing **/
+		public override Task OpenAsync()
+		{
+		    return NoopTask;
 		}
 
 		public override void Close() {

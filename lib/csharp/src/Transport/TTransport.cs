@@ -28,6 +28,7 @@ namespace Thrift.Transport
 {
 	public abstract class TTransport : IDisposable
 	{
+
 		public abstract bool IsOpen
 		{
 			get;
@@ -95,9 +96,9 @@ namespace Thrift.Transport
 		    FlushAsync().Wait();
 		}
 
-	    public virtual async Task FlushAsync()
+	    public virtual Task FlushAsync()
 	    {
-	        
+	        return NoopTask;
 	    }
         
         [Obsolete("Use FlushAsync instead")]
@@ -116,6 +117,7 @@ namespace Thrift.Transport
                 "Asynchronous operations are not supported by this transport.");
         }
 
+	    protected Task NoopTask = Task.FromResult(0);
 		#region " IDisposable Support "
 		// IDisposable
 		protected abstract void Dispose(bool disposing);
