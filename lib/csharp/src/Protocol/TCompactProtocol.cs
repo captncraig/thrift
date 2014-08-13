@@ -136,7 +136,7 @@ namespace Thrift.Protocol
         private void WriteByteDirect(byte b)
         {
             byteDirectBuffer[0] = b;
-            trans.Write(byteDirectBuffer);
+            trans.WriteZZZ(byteDirectBuffer);
         }
 
         /** 
@@ -171,7 +171,7 @@ namespace Thrift.Protocol
                     n >>= 7;
                 }
             }
-            trans.Write(i32buf, 0, idx);
+            trans.WriteZZZ(i32buf, 0, idx);
         }
 
         /**
@@ -358,7 +358,7 @@ namespace Thrift.Protocol
         {
             byte[] data = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
             fixedLongToBytes(BitConverter.DoubleToInt64Bits(dub), data, 0);
-            trans.Write(data);
+            trans.WriteZZZ(data);
         }
 
         /**
@@ -381,7 +381,7 @@ namespace Thrift.Protocol
         private void WriteBinary(byte[] buf, int offset, int length)
         {
             WriteVarint32((uint)length);
-            trans.Write(buf, offset, length);
+            trans.WriteZZZ(buf, offset, length);
         }
 
         //
@@ -436,7 +436,7 @@ namespace Thrift.Protocol
                     n >>= 7;
                 }
             }
-            trans.Write(varint64out, 0, idx);
+            trans.WriteZZZ(varint64out, 0, idx);
         }
 
         /**

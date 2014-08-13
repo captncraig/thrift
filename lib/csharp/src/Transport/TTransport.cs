@@ -75,17 +75,32 @@ namespace Thrift.Transport
 			return got;
 		}
 
-		public virtual void Write(byte[] buf) 
+	    public void WriteZZZ(byte[] buf)
+	    {
+	        WriteAsync(buf).Wait();
+	    }
+		public virtual Task WriteAsync(byte[] buf) 
 		{
-			Write (buf, 0, buf.Length);
+			return WriteAsync (buf, 0, buf.Length);
 		}
 
-		public abstract void Write(byte[] buf, int off, int len);
+	    public void WriteZZZ(byte[] buf, int off, int len)
+	    {
+	        WriteAsync(buf, off, len).Wait();
+	    }
+		public abstract Task WriteAsync(byte[] buf, int off, int len);
 
-		public virtual void Flush()
+		public void Flush()
 		{
+		    FlushAsync().Wait();
 		}
+
+	    public virtual async Task FlushAsync()
+	    {
+	        
+	    }
         
+        [Obsolete("Use FlushAsync instead")]
         public virtual IAsyncResult BeginFlush(AsyncCallback callback, object state)
         {
             throw new TTransportException(
@@ -93,6 +108,7 @@ namespace Thrift.Transport
                 "Asynchronous operations are not supported by this transport.");
         }
 
+        [Obsolete("Use FlushAsync instead")]
         public virtual void EndFlush(IAsyncResult asyncResult)
         {
             throw new TTransportException(

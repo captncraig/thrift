@@ -94,14 +94,14 @@ namespace Thrift.Transport
 			return inputBuffer.ReadAsync(buf, off, len);
 		}
 
-		public override void Write(byte[] buf, int off, int len)
+        public override Task WriteAsync(byte[] buf, int off, int len)
 		{
-			outputBuffer.Write(buf, off, len);
+			return outputBuffer.WriteAsync(buf, off, len);
 		}
 
-		public override void Flush()
+		public override Task FlushAsync()
 		{
-			outputBuffer.Flush();
+			return outputBuffer.FlushAsync();
 		}
 
     #region " IDisposable Support "

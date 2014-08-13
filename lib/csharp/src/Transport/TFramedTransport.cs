@@ -95,12 +95,12 @@ namespace Thrift.Transport
 			readBuffer = new MemoryStream(buff);
 		}
 
-		public override void Write(byte[] buf, int off, int len)
+        public override Task WriteAsync(byte[] buf, int off, int len)
 		{
-			writeBuffer.Write(buf, off, len);
+			return writeBuffer.WriteAsync(buf, off, len);
 		}
 
-		public override void Flush()
+        public override async Task FlushAsync()
 		{
 			byte[] buf = writeBuffer.GetBuffer();
 			int len = (int)writeBuffer.Length;
@@ -114,9 +114,9 @@ namespace Thrift.Transport
 			EncodeFrameSize(data_len,ref buf);
 
 			// Send the entire message at once
-			transport.Write(buf, 0, len);
+			await transport.WriteAsync(buf, 0, len);
 
-			transport.Flush();
+			await transport.FlushAsync();
 		}
 
 		private void InitWriteBuffer ()

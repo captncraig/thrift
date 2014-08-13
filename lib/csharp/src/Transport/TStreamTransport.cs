@@ -85,24 +85,24 @@ namespace Thrift.Transport
 			return inputStream.ReadAsync(buf, off, len);
 		}
 
-		public override void Write(byte[] buf, int off, int len)
+        public override Task WriteAsync(byte[] buf, int off, int len)
 		{
 			if (outputStream == null)
 			{
 				throw new TTransportException(TTransportException.ExceptionType.NotOpen, "Cannot write to null outputstream");
 			}
 
-			outputStream.Write(buf, off, len);
+			return outputStream.WriteAsync(buf, off, len);
 		}
 
-		public override void Flush()
+        public override Task FlushAsync()
 		{
 			if (outputStream == null)
 			{
 				throw new TTransportException(TTransportException.ExceptionType.NotOpen, "Cannot flush null outputstream");
 			}
 
-			outputStream.Flush();
+			return outputStream.FlushAsync();
 		}
 
 

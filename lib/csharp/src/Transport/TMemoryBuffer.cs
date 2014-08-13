@@ -49,8 +49,9 @@ namespace Thrift.Transport {
 			return byteStream.ReadAsync(buf, off, len);
 		}
 
-		public override void Write(byte[] buf, int off, int len) {
-			byteStream.Write(buf, off, len);
+        public override Task WriteAsync(byte[] buf, int off, int len)
+        {
+			return byteStream.WriteAsync(buf, off, len);
 		}
 
 		public byte[] GetBuffer() {

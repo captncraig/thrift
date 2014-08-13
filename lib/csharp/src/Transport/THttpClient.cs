@@ -144,17 +144,17 @@ namespace Thrift.Transport
 			}
 		}
 
-		public override void Write(byte[] buf, int off, int len)
+        public override Task WriteAsync(byte[] buf, int off, int len)
 		{
-			outputStream.Write(buf, off, len);
+			return outputStream.WriteAsync(buf, off, len);
 		}
 
 #if !SILVERLIGHT
-		public override void Flush()
+        public override Task FlushAsync()
 		{
 			try 
 			{
-				SendRequest();
+				return SendRequestAsync();
 			}
 			finally
 			{
@@ -162,7 +162,7 @@ namespace Thrift.Transport
 			}
 		}
 
-		private void SendRequest()
+		private async Task SendRequestAsync()
 		{
 			try
 			{
@@ -171,14 +171,14 @@ namespace Thrift.Transport
 				byte[] data = outputStream.ToArray();
 				connection.ContentLength = data.Length;
 
-				using (Stream requestStream = connection.GetRequestStream())
+				using (Stream requestStream = await connection.GetRequestStreamAsync())
 				{
-					requestStream.Write(data, 0, data.Length);
+					await requestStream.WriteAsync(data, 0, data.Length);
 
 					// Resolve HTTP hang that can happens after successive calls by making sure
 					// that we release the response and response stream. To support this, we copy
 					// the response to a memory stream.
-					using (var response = connection.GetResponse())
+					using (var response = await connection.GetResponseAsync())
 					{
 						using (var responseStream = response.GetResponseStream())
 						{
@@ -187,9 +187,9 @@ namespace Thrift.Transport
 							inputStream = new MemoryStream();
 							byte[] buffer = new byte[8096];
 							int bytesRead;
-							while ((bytesRead = responseStream.Read(buffer, 0, buffer.Length)) > 0)
+							while ((bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
 							{
-								inputStream.Write (buffer, 0, bytesRead);
+								await inputStream.WriteAsync(buffer, 0, bytesRead);
 							}
 							inputStream.Seek(0, 0);
 						}

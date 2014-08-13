@@ -221,7 +221,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.trans.Write(COMMA);
+					proto.trans.WriteZZZ(COMMA);
 				}
 			}
 
@@ -264,7 +264,7 @@ namespace Thrift.Protocol
 				}
 				else
 				{
-					proto.trans.Write(colon ? COLON : COMMA);
+					proto.trans.WriteZZZ(colon ? COLON : COMMA);
 					colon = !colon;
 				}
 			}
@@ -438,7 +438,7 @@ namespace Thrift.Protocol
 		private void WriteJSONString(byte[] b)
 		{
 			context.Write();
-			trans.Write(QUOTE);
+			trans.WriteZZZ(QUOTE);
 			int len = b.Length;
 			for (int i = 0; i < len; i++)
 			{
@@ -446,12 +446,12 @@ namespace Thrift.Protocol
 				{
 					if (b[i] == BACKSLASH[0])
 					{
-						trans.Write(BACKSLASH);
-						trans.Write(BACKSLASH);
+						trans.WriteZZZ(BACKSLASH);
+						trans.WriteZZZ(BACKSLASH);
 					}
 					else
 					{
-						trans.Write(b, i, 1);
+						trans.WriteZZZ(b, i, 1);
 					}
 				}
 				else
@@ -459,23 +459,23 @@ namespace Thrift.Protocol
 					tempBuffer[0] = JSON_CHAR_TABLE[b[i]];
 					if (tempBuffer[0] == 1)
 					{
-						trans.Write(b, i, 1);
+						trans.WriteZZZ(b, i, 1);
 					}
 					else if (tempBuffer[0] > 1)
 					{
-						trans.Write(BACKSLASH);
-						trans.Write(tempBuffer, 0, 1);
+						trans.WriteZZZ(BACKSLASH);
+						trans.WriteZZZ(tempBuffer, 0, 1);
 					}
 					else
 					{
-						trans.Write(ESCSEQ);
+						trans.WriteZZZ(ESCSEQ);
 						tempBuffer[0] = HexChar((byte)(b[i] >> 4));
 						tempBuffer[1] = HexChar(b[i]);
-						trans.Write(tempBuffer, 0, 2);
+						trans.WriteZZZ(tempBuffer, 0, 2);
 					}
 				}
 			}
-			trans.Write(QUOTE);
+			trans.WriteZZZ(QUOTE);
 		}
 
 		///<summary>
@@ -489,12 +489,12 @@ namespace Thrift.Protocol
 
 			bool escapeNum = context.EscapeNumbers();
 			if (escapeNum)
-				trans.Write(QUOTE);
+				trans.WriteZZZ(QUOTE);
 
-			trans.Write(utf8Encoding.GetBytes(str));
+			trans.WriteZZZ(utf8Encoding.GetBytes(str));
 
 			if (escapeNum)
-				trans.Write(QUOTE);
+				trans.WriteZZZ(QUOTE);
 		}
 
 		///<summary>
@@ -524,12 +524,12 @@ namespace Thrift.Protocol
 			bool escapeNum = special || context.EscapeNumbers();
 
 			if (escapeNum)
-				trans.Write(QUOTE);
+				trans.WriteZZZ(QUOTE);
 
-			trans.Write(utf8Encoding.GetBytes(str));
+			trans.WriteZZZ(utf8Encoding.GetBytes(str));
 
 			if (escapeNum)
-				trans.Write(QUOTE);
+				trans.WriteZZZ(QUOTE);
 		}
 		///<summary>
 		/// Write out contents of byte array b as a JSON string with base-64 encoded
@@ -538,7 +538,7 @@ namespace Thrift.Protocol
 		private void WriteJSONBase64(byte[] b)
 		{
 			context.Write();
-			trans.Write(QUOTE);
+			trans.WriteZZZ(QUOTE);
 
 			int len = b.Length;
 			int off = 0;
@@ -547,7 +547,7 @@ namespace Thrift.Protocol
 			{
 				// Encode 3 bytes at a time
 				TBase64Utils.encode(b, off, 3, tempBuffer, 0);
-				trans.Write(tempBuffer, 0, 4);
+				trans.WriteZZZ(tempBuffer, 0, 4);
 				off += 3;
 				len -= 3;
 			}
@@ -555,36 +555,36 @@ namespace Thrift.Protocol
 			{
 				// Encode remainder
 				TBase64Utils.encode(b, off, len, tempBuffer, 0);
-				trans.Write(tempBuffer, 0, len + 1);
+				trans.WriteZZZ(tempBuffer, 0, len + 1);
 			}
 
-			trans.Write(QUOTE);
+			trans.WriteZZZ(QUOTE);
 		}
 
 		private void WriteJSONObjectStart()
 		{
 			context.Write();
-			trans.Write(LBRACE);
+			trans.WriteZZZ(LBRACE);
 			PushContext(new JSONPairContext(this));
 		}
 
 		private void WriteJSONObjectEnd()
 		{
 			PopContext();
-			trans.Write(RBRACE);
+			trans.WriteZZZ(RBRACE);
 		}
 
 		private void WriteJSONArrayStart()
 		{
 			context.Write();
-			trans.Write(LBRACKET);
+			trans.WriteZZZ(LBRACKET);
 			PushContext(new JSONListContext(this));
 		}
 
 		private void WriteJSONArrayEnd()
 		{
 			PopContext();
-			trans.Write(RBRACKET);
+			trans.WriteZZZ(RBRACKET);
 		}
 
 		public override async Task WriteMessageBeginAsync(TMessage message)

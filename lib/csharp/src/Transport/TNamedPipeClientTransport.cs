@@ -78,14 +78,14 @@ namespace Thrift.Transport
 			return client.ReadAsync(buf, off, len);
 		}
 
-		public override void Write(byte[] buf, int off, int len)
+        public override Task WriteAsync(byte[] buf, int off, int len)
 		{
 			if (client == null)
 			{
 				throw new TTransportException(TTransportException.ExceptionType.NotOpen);
 			}
 
-			client.Write(buf, off, len);
+			return client.WriteAsync(buf, off, len);
 		}
 
 		protected override void Dispose(bool disposing)

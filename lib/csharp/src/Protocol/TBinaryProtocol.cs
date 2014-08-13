@@ -168,7 +168,7 @@ namespace Thrift.Protocol
         public override async Task WriteByteAsync(sbyte b)
 		{
 			bout[0] = (byte)b;
-			trans.Write(bout, 0, 1);
+			trans.WriteZZZ(bout, 0, 1);
 		}
 
 		private byte[] i16out = new byte[2];
@@ -176,7 +176,7 @@ namespace Thrift.Protocol
 		{
 			i16out[0] = (byte)(0xff & (s >> 8));
 			i16out[1] = (byte)(0xff & s);
-			trans.Write(i16out, 0, 2);
+			trans.WriteZZZ(i16out, 0, 2);
 		}
 
 		private byte[] i32out = new byte[4];
@@ -186,7 +186,7 @@ namespace Thrift.Protocol
 			i32out[1] = (byte)(0xff & (i32 >> 16));
 			i32out[2] = (byte)(0xff & (i32 >> 8));
 			i32out[3] = (byte)(0xff & i32);
-			trans.Write(i32out, 0, 4);
+			trans.WriteZZZ(i32out, 0, 4);
 		}
 
 		private byte[] i64out = new byte[8];
@@ -200,7 +200,7 @@ namespace Thrift.Protocol
 			i64out[5] = (byte)(0xff & (i64 >> 16));
 			i64out[6] = (byte)(0xff & (i64 >> 8));
 			i64out[7] = (byte)(0xff & i64);
-			trans.Write(i64out, 0, 8);
+			trans.WriteZZZ(i64out, 0, 8);
 		}
 
         public override Task WriteDoubleAsync(double d)
@@ -216,7 +216,7 @@ namespace Thrift.Protocol
         public override async Task WriteBinaryAsync(byte[] b)
 		{
 			await WriteI32Async(b.Length);
-			trans.Write(b, 0, b.Length);
+			trans.WriteZZZ(b, 0, b.Length);
 		}
 
 		#endregion
