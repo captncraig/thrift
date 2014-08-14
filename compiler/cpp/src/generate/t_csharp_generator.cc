@@ -1057,8 +1057,16 @@ void t_csharp_generator::generate_csharp_struct_writer(ofstream& out, t_struct* 
 }
 
 void t_csharp_generator::generate_csharp_struct_result_writer(ofstream& out, t_struct* tstruct) {
-  indent(out) <<
-    "public void Write(TProtocol oprot) {" << endl;
+	string async = task_ ? "Async" : "";
+	string await = task_ ? "await " : "";
+	if (task_){
+		indent(out) <<
+			"public async Task WriteAsync(TProtocol oprot) {" << endl;
+	}
+	else{
+		indent(out) <<
+			"public void Write(TProtocol oprot) {" << endl;
+	}
   indent_up();
 
   string name = tstruct->get_name();
@@ -1067,8 +1075,8 @@ void t_csharp_generator::generate_csharp_struct_result_writer(ofstream& out, t_s
 
   indent(out) <<
     "TStruct struc = new TStruct(\"" << name << "\");" << endl;
-  indent(out) <<
-    "oprot.WriteStructBegin(struc);" << endl;
+  indent(out) << await << 
+    "oprot.WriteStructBegin"<<async<<"(struc);" << endl;
 
   if (fields.size() > 0) {
     indent(out) << "TField field = new TField();" << endl;
@@ -1101,13 +1109,13 @@ void t_csharp_generator::generate_csharp_struct_result_writer(ofstream& out, t_s
         "field.Type = " << type_to_enum((*f_iter)->get_type()) << ";" << endl;
       indent(out) <<
         "field.ID = " << (*f_iter)->get_key() << ";" << endl;
-      indent(out) <<
-        "oprot.WriteFieldBegin(field);" << endl;
+      indent(out) << await << 
+        "oprot.WriteFieldBegin"<<async<<"(field);" << endl;
 
       generate_serialize_field(out, *f_iter);
 
-      indent(out) <<
-        "oprot.WriteFieldEnd();" << endl;
+      indent(out) << await << 
+		  "oprot.WriteFieldEnd" << async << "();" << endl;
 
       if (null_allowed) {
         indent_down();
@@ -1121,8 +1129,8 @@ void t_csharp_generator::generate_csharp_struct_result_writer(ofstream& out, t_s
 
   out <<
     endl <<
-    indent() << "oprot.WriteFieldStop();" << endl <<
-    indent() << "oprot.WriteStructEnd();" << endl;
+	indent() <<await << "oprot.WriteFieldStop" << async << "();" << endl <<
+	indent() <<await << "oprot.WriteStructEnd" << async << "();" << endl;
 
   indent_down();
 
@@ -1464,22 +1472,29 @@ void t_csharp_generator::generate_service_interface(t_service* tservice) {
                 }
         }
 
-    indent(f_service_) <<
-      function_signature(*f_iter) << ";" << endl;
-    if(!async_) {
-      indent(f_service_) << "#if SILVERLIGHT" << endl;
-    }
-    indent(f_service_) <<
-      function_signature_async_begin(*f_iter, "Begin_") << ";" << endl;
-    indent(f_service_) <<
-      function_signature_async_end(*f_iter, "End_") << ";" << endl;  
-    if(async_||async_ctp_) {
-      indent(f_service_) <<
-        function_signature_async(*f_iter) << ";" << endl;
-    }
-    if (!async_) {
-      indent(f_service_) << "#endif" << endl;
-    }
+    
+	if (!task_){
+		indent(f_service_) <<
+			function_signature(*f_iter) << ";" << endl;
+		if (!async_) {
+			indent(f_service_) << "#if SILVERLIGHT" << endl;
+		}
+		indent(f_service_) <<
+			function_signature_async_begin(*f_iter, "Begin_") << ";" << endl;
+		indent(f_service_) <<
+			function_signature_async_end(*f_iter, "End_") << ";" << endl;
+		if (async_ || async_ctp_) {
+			indent(f_service_) <<
+				function_signature_async(*f_iter) << ";" << endl;
+		}
+		if (!async_) {
+			indent(f_service_) << "#endif" << endl;
+		}
+	}
+	else{
+		indent(f_service_) <<
+			function_signature_async(*f_iter) << ";" << endl;
+	}
   }
   indent_down();
   f_service_ <<
@@ -1585,158 +1600,178 @@ void t_csharp_generator::generate_service_client(t_service* tservice) {
   vector<t_function*> functions = tservice->get_functions();
   vector<t_function*>::const_iterator f_iter;
   for (f_iter = functions.begin(); f_iter != functions.end(); ++f_iter) {
-    string funname = (*f_iter)->get_name();
+	  string funname = (*f_iter)->get_name();
 
-    indent(f_service_) << endl;
-    
-    if (!async_) {
-      indent(f_service_) << "#if SILVERLIGHT" << endl;
-    }
-    // Begin_
-    indent(f_service_) <<
-      "public " << function_signature_async_begin(*f_iter, "Begin_") << endl;
-    scope_up(f_service_);
-    indent(f_service_) <<
-      "return " << "send_" << funname << "(callback, state";
+	  indent(f_service_) << endl;
+	  vector<t_field*>::const_iterator fld_iter;
+	  t_struct* arg_struct = (*f_iter)->get_arglist();
+	  prepare_member_name_mapping(arg_struct);
+	  const vector<t_field*>& fields = arg_struct->get_members();
 
-    t_struct* arg_struct = (*f_iter)->get_arglist();
-    prepare_member_name_mapping( arg_struct); 
+	  if (!task_){ //don't generate begin/end pairs for task based async
+		  if (!async_) {
+			  indent(f_service_) << "#if SILVERLIGHT" << endl;
+		  }
+		  // Begin_
+		  indent(f_service_) <<
+			  "public " << function_signature_async_begin(*f_iter, "Begin_") << endl;
+		  scope_up(f_service_);
+		  indent(f_service_) <<
+			  "return " << "send_" << funname << "(callback, state";
 
-    const vector<t_field*>& fields = arg_struct->get_members();
-    vector<t_field*>::const_iterator fld_iter;
-    for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-      f_service_ << ", ";
-      f_service_ << normalize_name((*fld_iter)->get_name());
-    }
-    f_service_ << ");" << endl;
-    scope_down(f_service_);
-    f_service_ << endl;
-        
-    // End
-    indent(f_service_) <<
-      "public " << function_signature_async_end(*f_iter, "End_") << endl;
-    scope_up(f_service_);
-    indent(f_service_) <<
-      "oprot_.Transport.EndFlush(asyncResult);" << endl;
-    if (!(*f_iter)->is_oneway()) {
-      f_service_ << indent();
-      if (!(*f_iter)->get_returntype()->is_void()) {
-        f_service_ << "return ";
-      }
-      f_service_ <<
-        "recv_" << funname << "();" << endl;
-    }
-    scope_down(f_service_);
-    f_service_ << endl;
 
-    // async
-    bool first;
-    if( async_||async_ctp_) {
-      indent(f_service_) <<
-        "public async " << function_signature_async(*f_iter, "") << endl;
-      scope_up(f_service_);
-      
-      if (!(*f_iter)->get_returntype()->is_void()) {
-        indent(f_service_) <<
-          type_name( (*f_iter)->get_returntype()) << " retval;" << endl;
-        indent(f_service_) <<
-          "retval = ";
-      } else {
-        indent(f_service_);
-      }
-      if (async_) {
-        f_service_ << "await Task.Run(() =>" << endl;
-      } else {
-        f_service_ << "await TaskEx.Run(() =>" << endl;
-      }
-      scope_up(f_service_);
-      indent(f_service_);
-      if (!(*f_iter)->get_returntype()->is_void()) {
-        f_service_ <<
-          "return ";
-      }
-      f_service_ << 
-        funname << "(";
-          first = true;
-      for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-        if (first) {
-          first = false;
-        } else {
-          f_service_ << ", ";
-        }
-        f_service_ << (*fld_iter)->get_name();
-      }
-      f_service_ << ");" << endl;
-      indent_down();
-      indent(f_service_) << 
-        "});" << endl;
-      if (!(*f_iter)->get_returntype()->is_void()) {
-        indent(f_service_) << 
-          "return retval;"  << endl;
-      }
-          scope_down(f_service_);
-      f_service_ << endl;
-    }
-    
-    if (!async_) {
-      indent(f_service_) << "#endif" << endl << endl;
-    }
 
-    // "Normal" Synchronous invoke
-    generate_csharp_doc(f_service_, *f_iter);
-    indent(f_service_) <<
-      "public " << function_signature(*f_iter) << endl;
-    scope_up(f_service_);
+		  for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
+			  f_service_ << ", ";
+			  f_service_ << normalize_name((*fld_iter)->get_name());
+		  }
+		  f_service_ << ");" << endl;
+		  scope_down(f_service_);
+		  f_service_ << endl;
 
-    if (!async_) {
-      indent(f_service_) << "#if !SILVERLIGHT" << endl;
-      indent(f_service_) <<
-        "send_" << funname << "(";
+		  // End
+		  indent(f_service_) <<
+			  "public " << function_signature_async_end(*f_iter, "End_") << endl;
+		  scope_up(f_service_);
+		  indent(f_service_) <<
+			  "oprot_.Transport.EndFlush(asyncResult);" << endl;
+		  if (!(*f_iter)->is_oneway()) {
+			  f_service_ << indent();
+			  if (!(*f_iter)->get_returntype()->is_void()) {
+				  f_service_ << "return ";
+			  }
+			  f_service_ <<
+				  "recv_" << funname << "();" << endl;
+		  }
+		  scope_down(f_service_);
+		  f_service_ << endl;
+	  }
+	  // async
+	  bool first;
+	  if (async_ || async_ctp_) {
 
-      first = true;
-      for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-        if (first) {
-          first = false;
-        } else {
-          f_service_ << ", ";
-        }
-        f_service_ << normalize_name((*fld_iter)->get_name());
-      }
-      f_service_ << ");" << endl;
+		  indent(f_service_) <<
+			  "public async " << function_signature_async(*f_iter, "") << endl;
+		  scope_up(f_service_);
 
-      if (!(*f_iter)->is_oneway()) {
-        f_service_ << indent();
-        if (!(*f_iter)->get_returntype()->is_void()) {
-          f_service_ << "return ";
-        }
-        f_service_ <<
-          "recv_" << funname << "();" << endl;
-      }
-      f_service_ << endl;
+		  if (!(*f_iter)->get_returntype()->is_void()) {
+			  indent(f_service_) <<
+				  type_name((*f_iter)->get_returntype()) << " retval;" << endl;
+			  indent(f_service_) <<
+				  "retval = ";
+		  }
+		  else {
+			  indent(f_service_);
+		  }
+		  if (async_) {
+			  f_service_ << "await Task.Run(() =>" << endl;
+		  }
+		  else {
+			  f_service_ << "await TaskEx.Run(() =>" << endl;
+		  }
+		  scope_up(f_service_);
+		  indent(f_service_);
+		  if (!(*f_iter)->get_returntype()->is_void()) {
+			  f_service_ <<
+				  "return ";
+		  }
+		  f_service_ <<
+			  funname << "(";
+		  first = true;
+		  for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
+			  if (first) {
+				  first = false;
+			  }
+			  else {
+				  f_service_ << ", ";
+			  }
+			  f_service_ << (*fld_iter)->get_name();
+		  }
+		  f_service_ << ");" << endl;
+		  indent_down();
+		  indent(f_service_) <<
+			  "});" << endl;
+		  if (!(*f_iter)->get_returntype()->is_void()) {
+			  indent(f_service_) <<
+				  "return retval;" << endl;
+		  }
+		  scope_down(f_service_);
+		  f_service_ << endl;
+	  }
 
-      indent(f_service_) << "#else" << endl;
-    }
+	  if (!async_ && !task_) {
+		  indent(f_service_) << "#endif" << endl << endl;
+	  }
 
-    // Silverlight synchronous invoke
-    indent(f_service_) << "var asyncResult = Begin_" << funname << "(null, null";
-    for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
-      f_service_ << ", " << normalize_name((*fld_iter)->get_name());
-    }
-    f_service_ << ");" << endl;
+	  // "Normal" Synchronous invoke
+	  generate_csharp_doc(f_service_, *f_iter);
+	  if (!task_){
+		  indent(f_service_) <<
+			  "public " << function_signature(*f_iter) << endl;
+	  }
+	  else{
+		  indent(f_service_) <<
+			  "public async " << function_signature_async(*f_iter, "") << endl;
+	  }
+	  scope_up(f_service_);
+	  string await = task_ ? "await " : "";
+	  string async = task_ ? "Async" : "";
+	  string asyncModifier = task_ ? "async " : "";
+	  if (!async_) {
+		  if (!task_){
+			  indent(f_service_) << "#if !SILVERLIGHT" << endl;
+		  }
+		  indent(f_service_) <<
+			  await << "send_" << funname << async << "(";
 
-    if (!(*f_iter)->is_oneway()) {
-      f_service_ << indent();
-      if (!(*f_iter)->get_returntype()->is_void()) {
-        f_service_ << "return ";
-      }
-      f_service_ <<
-        "End_" << funname << "(asyncResult);" << endl;
-    }
-    f_service_ << endl;
+		  first = true;
+		  for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
+			  if (first) {
+				  first = false;
+			  }
+			  else {
+				  f_service_ << ", ";
+			  }
+			  f_service_ << normalize_name((*fld_iter)->get_name());
+		  }
+		  f_service_ << ");" << endl;
 
-    if (!async_) {
-      indent(f_service_) << "#endif" << endl;
-    }
+		  if (!(*f_iter)->is_oneway()) {
+			  f_service_ << indent();
+			  if (!(*f_iter)->get_returntype()->is_void()) {
+				  f_service_ << "return ";
+			  }
+			  f_service_ << await <<
+				  "recv_" << funname << async << "();" << endl;
+		  }
+		  f_service_ << endl;
+		  if (!task_){
+			  indent(f_service_) << "#else" << endl;
+		  }
+	  }
+
+	  // Silverlight synchronous invoke
+	  if (!task_){
+	    indent(f_service_) << "var asyncResult = Begin_" << funname << "(null, null";
+	    for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
+		    f_service_ << ", " << normalize_name((*fld_iter)->get_name());
+	    }
+	    f_service_ << ");" << endl;
+	    
+	    if (!(*f_iter)->is_oneway()) {
+		    f_service_ << indent();
+		    if (!(*f_iter)->get_returntype()->is_void()) {
+		  	  f_service_ << "return ";
+		    }
+		    f_service_ <<
+		  	  "End_" << funname << "(asyncResult);" << endl;
+	    }
+	    f_service_ << endl;
+	    
+	    if (!async_) {
+		    indent(f_service_) << "#endif" << endl;
+	    }
+	  }
     scope_down(f_service_);
 
     // Send
@@ -1745,20 +1780,24 @@ void t_csharp_generator::generate_service_client(t_service* tservice) {
         (*f_iter)->get_arglist());
 
     string argsname = (*f_iter)->get_name() + "_args";
-
-    if (!async_) {
-      indent(f_service_) << "#if SILVERLIGHT" << endl;
-    }
-    indent(f_service_) << "public " << function_signature_async_begin(&send_function) << endl;
-    if (!async_) {
-      indent(f_service_) << "#else" << endl;
-      indent(f_service_) << "public " << function_signature(&send_function) << endl;
-      indent(f_service_) << "#endif" << endl;
-    }
+	if (task_){
+		indent(f_service_) << "public async " << function_signature_async(&send_function) << endl;
+	}
+	else{
+		if (!async_) {
+			indent(f_service_) << "#if SILVERLIGHT" << endl;
+		}
+		indent(f_service_) << "public " << function_signature_async_begin(&send_function) << endl;
+		if (!async_) {
+			indent(f_service_) << "#else" << endl;
+			indent(f_service_) << "public " << function_signature(&send_function) << endl;
+			indent(f_service_) << "#endif" << endl;
+		}
+	}
     scope_up(f_service_);
 
     f_service_ <<
-      indent() << "oprot_.WriteMessageBegin(new TMessage(\"" << funname << "\", TMessageType.Call, seqid_));" << endl <<
+      indent() << await << "oprot_.WriteMessageBegin"<<async<<"(new TMessage(\"" << funname << "\", TMessageType.Call, seqid_));" << endl <<
       indent() << argsname << " args = new " << argsname << "();" << endl;
 
     for (fld_iter = fields.begin(); fld_iter != fields.end(); ++fld_iter) {
@@ -1767,18 +1806,23 @@ void t_csharp_generator::generate_service_client(t_service* tservice) {
     }
 
     f_service_ <<
-      indent() << "args.Write(oprot_);" << endl <<
-      indent() << "oprot_.WriteMessageEnd();" << endl;;
+      indent() << await <<"args.Write"<<async<<"(oprot_);" << endl <<
+	  indent() << await << "oprot_.WriteMessageEnd" << async << "();" << endl;;
     
-    if (!async_) {
-      indent(f_service_) << "#if SILVERLIGHT" << endl;
-    }
-    indent(f_service_) << "return oprot_.Transport.BeginFlush(callback, state);" << endl;
-    if (!async_) {
-      indent(f_service_) << "#else" << endl;
-      indent(f_service_) << "oprot_.Transport.Flush();" << endl;
-      indent(f_service_) << "#endif" << endl;
-    }
+	if (task_){
+		indent(f_service_) << "await oprot_.Transport.FlushAsync();" << endl;
+	}
+	else{
+		if (!async_) {
+			indent(f_service_) << "#if SILVERLIGHT" << endl;
+		}
+		indent(f_service_) << "return oprot_.Transport.BeginFlush(callback, state);" << endl;
+		if (!async_) {
+			indent(f_service_) << "#else" << endl;
+			indent(f_service_) << "oprot_.Transport.Flush();" << endl;
+			indent(f_service_) << "#endif" << endl;
+		}
+	}
 
     cleanup_member_name_mapping( arg_struct); 
     scope_down(f_service_);
@@ -1792,25 +1836,31 @@ void t_csharp_generator::generate_service_client(t_service* tservice) {
           string("recv_") + (*f_iter)->get_name(),
           &noargs,
           (*f_iter)->get_xceptions());
-      indent(f_service_) <<
-        "public " << function_signature(&recv_function) << endl;
+	  if (task_){
+		  indent(f_service_) <<
+			  "public async " << function_signature_async(&recv_function) << endl;
+	  }
+	  else{
+		  indent(f_service_) <<
+			  "public " << function_signature(&recv_function) << endl;
+	  }
       scope_up(f_service_);
       prepare_member_name_mapping( (*f_iter)->get_xceptions()); 
 
       f_service_ <<
-        indent() << "TMessage msg = iprot_.ReadMessageBegin();" << endl <<
+        indent() << "TMessage msg = "<<await<<"iprot_.ReadMessageBegin"<<async<<"();" << endl <<
         indent() << "if (msg.Type == TMessageType.Exception) {" << endl;
       indent_up();
       f_service_ <<
-        indent() << "TApplicationException x = TApplicationException.Read(iprot_);" << endl <<
-        indent() << "iprot_.ReadMessageEnd();" << endl <<
+		  indent() << "TApplicationException x = " << await << "TApplicationException.Read" << async << "(iprot_);" << endl <<
+		  indent() << await << "iprot_.ReadMessageEnd" << async << "();" << endl <<
         indent() << "throw x;" << endl;
       indent_down();
       f_service_ <<
         indent() << "}" << endl <<
         indent() << resultname << " result = new " << resultname << "();" << endl <<
-        indent() << "result.Read(iprot_);" << endl <<
-        indent() << "iprot_.ReadMessageEnd();" << endl;
+		indent() << await << "result.Read" << async << "(iprot_);" << endl <<
+		indent() << await << "iprot_.ReadMessageEnd" << async << "();" << endl;
 
       if (!(*f_iter)->get_returntype()->is_void()) {
         if (nullable_) {
@@ -1880,9 +1930,10 @@ void t_csharp_generator::generate_service_server(t_service* tservice) {
     extends = type_name(tservice->get_extends());
     extends_processor = extends + ".Processor, ";
   }
-
+  string async = task_ ? "Async" : "";
+  string await = task_ ? "await " : "";
   indent(f_service_) <<
-    "public class Processor : " << extends_processor << "TProcessor {" << endl;
+    "public class Processor : " << extends_processor << "T"<<async<<"Processor {" << endl;
   indent_up();
 
   indent(f_service_) <<
@@ -1904,8 +1955,14 @@ void t_csharp_generator::generate_service_server(t_service* tservice) {
   f_service_ << endl;
 
   if (extends.empty()) {
-    f_service_ <<
-      indent() << "protected delegate void ProcessFunction(int seqid, TProtocol iprot, TProtocol oprot);" << endl;
+	  if (task_){
+		  f_service_ <<
+			  indent() << "protected delegate Task ProcessFunction(int seqid, TProtocol iprot, TProtocol oprot);" << endl;
+	  }
+	  else{
+		  f_service_ <<
+			  indent() << "protected delegate void ProcessFunction(int seqid, TProtocol iprot, TProtocol oprot);" << endl;
+	  }
   }
 
   f_service_ <<
@@ -1918,14 +1975,15 @@ void t_csharp_generator::generate_service_server(t_service* tservice) {
 
   f_service_ << endl;
 
+  string processFuncReturnType = task_ ? "async Task<bool>" : "bool";
   if (extends.empty()) {
     indent(f_service_) <<
-      "public bool Process(TProtocol iprot, TProtocol oprot)" << endl;
+		"public " << processFuncReturnType<<" Process"<<async<<"(TProtocol iprot, TProtocol oprot)" << endl;
   }
   else
   {
     indent(f_service_) <<
-      "public new bool Process(TProtocol iprot, TProtocol oprot)" << endl;
+		"public new" << processFuncReturnType << " Process" << async << "(TProtocol iprot, TProtocol oprot)" << endl;
   }
   scope_up(f_service_);
 
@@ -1933,22 +1991,26 @@ void t_csharp_generator::generate_service_server(t_service* tservice) {
   scope_up(f_service_);
 
   f_service_ <<
-    indent() << "TMessage msg = iprot.ReadMessageBegin();" << endl;
+	  indent() <<"TMessage msg = "<<await<<"iprot.ReadMessageBegin" << async << "();" << endl;
 
   f_service_ <<
-    indent() << "ProcessFunction fn;" << endl <<
-    indent() << "processMap_.TryGetValue(msg.Name, out fn);" << endl <<
-    indent() << "if (fn == null) {" << endl <<
-    indent() << "  TProtocolUtil.Skip(iprot, TType.Struct);" << endl <<
-    indent() << "  iprot.ReadMessageEnd();" << endl <<
-    indent() << "  TApplicationException x = new TApplicationException (TApplicationException.ExceptionType.UnknownMethod, \"Invalid method name: '\" + msg.Name + \"'\");" << endl <<
-    indent() << "  oprot.WriteMessageBegin(new TMessage(msg.Name, TMessageType.Exception, msg.SeqID));" << endl <<
-    indent() << "  x.Write(oprot);" << endl <<
-    indent() << "  oprot.WriteMessageEnd();" << endl <<
-    indent() << "  oprot.Transport.Flush();" << endl <<
-    indent() << "  return true;" << endl <<
-    indent() << "}" << endl <<
-    indent() << "fn(msg.SeqID, iprot, oprot);" << endl;
+	  indent() << "ProcessFunction fn;" << endl <<
+	  indent() << "processMap_.TryGetValue(msg.Name, out fn);" << endl <<
+	  indent() << "if (fn == null) {" << endl;
+  indent_up();
+  f_service_ <<
+	  indent() << await << "TProtocolUtil.Skip" << async << "(iprot, TType.Struct);" << endl <<
+	  indent() << await << "iprot.ReadMessageEnd" << async << "();" << endl <<
+	  indent() << "TApplicationException x = new TApplicationException (TApplicationException.ExceptionType.UnknownMethod, \"Invalid method name: '\" + msg.Name + \"'\");" << endl <<
+	  indent() << await << "oprot.WriteMessageBegin" << async << "(new TMessage(msg.Name, TMessageType.Exception, msg.SeqID));" << endl <<
+	  indent() << await << "x.Write" << async << "(oprot);" << endl <<
+	  indent() << await << "oprot.WriteMessageEnd" << async << "();" << endl <<
+	  indent() << await << "oprot.Transport.Flush" << async << "();" << endl <<
+	  indent() << "return true;" << endl;
+  indent_down();
+  f_service_ <<
+	indent() << "}" << endl <<
+	indent() << await << "fn(msg.SeqID, iprot, oprot);" << endl;
 
   scope_down(f_service_);
 
@@ -1998,17 +2060,20 @@ void t_csharp_generator::generate_function_helpers(t_function* tfunction) {
 
 void t_csharp_generator::generate_process_function(t_service* tservice, t_function* tfunction) {
   (void) tservice;
+  string rType = task_ ? "async Task " : "void ";
   indent(f_service_) <<
-    "public void " << tfunction->get_name() << "_Process(int seqid, TProtocol iprot, TProtocol oprot)" << endl;
+    "public "<< rType << tfunction->get_name() << "_Process(int seqid, TProtocol iprot, TProtocol oprot)" << endl;
   scope_up(f_service_);
 
+  string await = task_ ? "await " : "";
+  string async = task_ ? "Async" : "";
   string argsname = tfunction->get_name() + "_args";
   string resultname = tfunction->get_name() + "_result";
 
   f_service_ <<
     indent() << argsname << " args = new " << argsname << "();" << endl <<
-    indent() << "args.Read(iprot);" << endl <<
-    indent() << "iprot.ReadMessageEnd();" << endl;
+    indent() << await << "args.Read"<<async<<"(iprot);" << endl <<
+	indent() << await << "iprot.ReadMessageEnd" << async << "();" << endl;
 
   t_struct* xs = tfunction->get_xceptions();
   const std::vector<t_field*>& xceptions = xs->get_members();
@@ -2033,8 +2098,8 @@ void t_csharp_generator::generate_process_function(t_service* tservice, t_functi
   if (!tfunction->is_oneway() && !tfunction->get_returntype()->is_void()) {
     f_service_ << "result.Success = ";
   }
-  f_service_ <<
-    "iface_." << normalize_name(tfunction->get_name()) << "(";
+  f_service_ << await <<
+    "iface_." << normalize_name(tfunction->get_name()) << async << "(";
   bool first = true;
   prepare_member_name_mapping(arg_struct); 
   for (f_iter = fields.begin(); f_iter != fields.end(); ++f_iter) {
@@ -2080,10 +2145,10 @@ void t_csharp_generator::generate_process_function(t_service* tservice, t_functi
   }
 
   f_service_ <<
-    indent() << "oprot.WriteMessageBegin(new TMessage(\"" << tfunction->get_name() << "\", TMessageType.Reply, seqid)); " << endl <<
-    indent() << "result.Write(oprot);" << endl <<
-    indent() << "oprot.WriteMessageEnd();" << endl <<
-    indent() << "oprot.Transport.Flush();" << endl;
+	  indent() << await << "oprot.WriteMessageBegin" << async << "(new TMessage(\"" << tfunction->get_name() << "\", TMessageType.Reply, seqid)); " << endl <<
+	  indent() << await << "result.Write" << async << "(oprot);" << endl <<
+	  indent() << await << "oprot.WriteMessageEnd" << async << "();" << endl <<
+	  indent() << await << "oprot.Transport.Flush" << async << "();" << endl;
 
   scope_down(f_service_);
 
